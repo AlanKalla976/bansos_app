@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80" width="320" height="80">
+  <!-- Background circle -->
+  <circle cx="40" cy="40" r="38" fill="#1E3A5F"/>
+  <circle cx="40" cy="40" r="34" fill="#2D6A4F"/>
+
+  <!-- Family / Social icon group -->
+  <!-- House shape -->
+  <polygon points="40,10 58,26 58,50 22,50 22,26" fill="#52B788" opacity="0.9"/>
+  <rect x="33" y="35" width="14" height="15" rx="2" fill="#1E3A5F"/>
+  <polygon points="40,8 61,26 19,26" fill="#F9C74F"/>
+
+  <!-- People silhouettes -->
+  <!-- Left person -->
+  <circle cx="28" cy="56" r="4.5" fill="#F9C74F"/>
+  <path d="M21,70 Q28,62 35,70" fill="#52B788"/>
+  <!-- Right person -->
+  <circle cx="52" cy="56" r="4.5" fill="#F9C74F"/>
+  <path d="M45,70 Q52,62 59,70" fill="#52B788"/>
+  <!-- Center person (taller) -->
+  <circle cx="40" cy="53" r="5" fill="#FFFFFF"/>
+  <path d="M33,70 Q40,61 47,70" fill="#2D6A4F"/>
+
+  <!-- Gold accent line at bottom of circle -->
+  <path d="M14,68 Q40,76 66,68" stroke="#F9C74F" stroke-width="2" fill="none" opacity="0.6"/>
+
+  <!-- Text: SPK BANSOS -->
+  <text x="90" y="28" font-family="'Segoe UI', Arial, sans-serif" font-size="22" font-weight="800" fill="#1E3A5F" letter-spacing="1">BANTUAN SOSIAL</text>
+
+  <!-- Decorative line under BANTUAN SOSIAL -->
+  <rect x="90" y="33" width="180" height="3" rx="1.5" fill="#F9C74F"/>
+
+  <!-- Text: SISTEM PENDUKUNG KEPUTUSAN -->
+  <text x="90" y="52" font-family="'Segoe UI', Arial, sans-serif" font-size="10" font-weight="600" fill="#2D6A4F" letter-spacing="1.5">SISTEM PENDUKUNG KEPUTUSAN</text>
+
+  <!-- Text: KELURAHAN HARJAMUKTI -->
+  <text x="90" y="68" font-family="'Segoe UI', Arial, sans-serif" font-size="10" font-weight="500" fill="#64748b" letter-spacing="0.5">Kelurahan Harjamukti · Kota Cirebon</text>
+</svg>

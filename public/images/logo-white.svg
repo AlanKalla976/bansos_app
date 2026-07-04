@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80" width="320" height="80">
+  <!-- Background circle -->
+  <circle cx="40" cy="40" r="38" fill="rgba(255,255,255,0.15)"/>
+  <circle cx="40" cy="40" r="34" fill="rgba(255,255,255,0.1)"/>
+
+  <!-- House shape -->
+  <polygon points="40,10 58,26 58,50 22,50 22,26" fill="rgba(255,255,255,0.85)"/>
+  <rect x="33" y="35" width="14" height="15" rx="2" fill="rgba(30,58,95,0.6)"/>
+  <polygon points="40,8 61,26 19,26" fill="#F9C74F"/>
+
+  <!-- People silhouettes -->
+  <circle cx="28" cy="56" r="4.5" fill="#F9C74F"/>
+  <path d="M21,70 Q28,62 35,70" fill="rgba(255,255,255,0.7)"/>
+  <circle cx="52" cy="56" r="4.5" fill="#F9C74F"/>
+  <path d="M45,70 Q52,62 59,70" fill="rgba(255,255,255,0.7)"/>
+  <circle cx="40" cy="53" r="5" fill="#FFFFFF"/>
+  <path d="M33,70 Q40,61 47,70" fill="rgba(255,255,255,0.8)"/>
+
+  <!-- Gold accent line -->
+  <path d="M14,68 Q40,76 66,68" stroke="#F9C74F" stroke-width="2" fill="none" opacity="0.8"/>
+
+  <!-- Text: BANTUAN SOSIAL -->
+  <text x="90" y="28" font-family="'Segoe UI', Arial, sans-serif" font-size="22" font-weight="800" fill="#FFFFFF" letter-spacing="1">BANTUAN SOSIAL</text>
+
+  <!-- Decorative line -->
+  <rect x="90" y="33" width="180" height="3" rx="1.5" fill="#F9C74F"/>
+
+  <!-- Text: SISTEM PENDUKUNG KEPUTUSAN -->
+  <text x="90" y="52" font-family="'Segoe UI', Arial, sans-serif" font-size="10" font-weight="600" fill="rgba(255,255,255,0.85)" letter-spacing="1.5">SISTEM PENDUKUNG KEPUTUSAN</text>
+
+  <!-- Text: KELURAHAN HARJAMUKTI -->
+  <text x="90" y="68" font-family="'Segoe UI', Arial, sans-serif" font-size="10" font-weight="400" fill="rgba(255,255,255,0.6)" letter-spacing="0.5">Kelurahan Harjamukti · Kota Cirebon</text>
+</svg>
