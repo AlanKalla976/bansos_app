@@ -66,6 +66,7 @@
                 <tr>
                     <th style="width:60px;">No</th>
                     <th>Nama Bantuan</th>
+                    <th style="width:100px; text-align:center;">Kuota</th>
                     <th>Deskripsi</th>
                     <th style="text-align:center; width:120px;">Aksi</th>
                 </tr>
@@ -78,6 +79,9 @@
                     </td>
                     <td style="font-weight:600; color:#1E293B; font-size:.83rem;">
                         {{ $item->nama_bantuan }}
+                    </td>
+                    <td style="text-align:center; font-weight:600; color:#1E293B; font-size:.83rem;">
+                        {{ $item->kuota }}
                     </td>
                     <td style="color:#64748B; font-size:.82rem;">
                         {{ Str::limit($item->deskripsi, 80, '...') }}
@@ -107,7 +111,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="4">
+                    <td colspan="5">
                         <div class="empty-state" style="padding:3rem;">
                             <i class="bi bi-gift" style="font-size:2rem;"></i>
                             <p>Belum ada data bantuan sosial.</p>

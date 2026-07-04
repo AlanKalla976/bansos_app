@@ -26,6 +26,16 @@
                     @enderror
                 </div>
 
+                <div class="mb-3">
+                    <label for="kuota" class="form-label fw-semibold">Kuota <span class="text-danger">*</span></label>
+                    <input type="number" name="kuota" id="kuota" min="0"
+                           class="form-control @error('kuota') is-invalid @enderror"
+                           value="{{ old('kuota', 0) }}" placeholder="Jumlah kuota penerima">
+                    @error('kuota')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+
                 <div class="mb-4">
                     <label for="deskripsi" class="form-label fw-semibold">Deskripsi</label>
                     <textarea name="deskripsi" id="deskripsi" rows="4"

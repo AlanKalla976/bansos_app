@@ -24,9 +24,10 @@ class BantuanSosialController extends Controller
         $request->validate([
             'nama_bantuan' => 'required|string|max:100',
             'deskripsi'    => 'nullable|string',
+            'kuota'        => 'required|integer|min:0',
         ]);
 
-        BantuanSosial::create($request->only('nama_bantuan', 'deskripsi'));
+        BantuanSosial::create($request->only('nama_bantuan', 'deskripsi', 'kuota'));
 
         return redirect()->route('admin.bantuansosial.index')
                          ->with('success', 'Data bantuan sosial berhasil ditambahkan.');
@@ -42,9 +43,10 @@ class BantuanSosialController extends Controller
         $request->validate([
             'nama_bantuan' => 'required|string|max:100',
             'deskripsi'    => 'nullable|string',
+            'kuota'        => 'required|integer|min:0',
         ]);
 
-        $bantuansosial->update($request->only('nama_bantuan', 'deskripsi'));
+        $bantuansosial->update($request->only('nama_bantuan', 'deskripsi', 'kuota'));
 
         return redirect()->route('admin.bantuansosial.index')
                          ->with('success', 'Data bantuan sosial berhasil diperbarui.');

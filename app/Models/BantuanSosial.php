@@ -11,5 +11,6 @@ class BantuanSosial extends Model
     protected $fillable = [
         'nama_bantuan',
         'deskripsi',
+        'kuota',
     ];
 }
