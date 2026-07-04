@@ -1,6 +1,8 @@
 @extends('admin.layouts.app')
 
 @section('title', 'Edit Sub Kriteria')
+@section('page-title', 'Sub Kriteria')
+@section('breadcrumb', 'Sub Kriteria')
 
 @section('content')
 <div class="container-fluid">

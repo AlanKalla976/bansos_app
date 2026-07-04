@@ -1,6 +1,8 @@
 @extends('admin.layouts.app')
 
 @section('title', 'Tambah Bantuan Sosial')
+@section('page-title', 'Data Bantuan Sosial')
+@section('breadcrumb', 'Jenis Bantuan')
 
 @section('content')
 <div class="container-fluid">

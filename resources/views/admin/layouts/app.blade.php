@@ -230,8 +230,28 @@
     .topbar-username { font-size: .8rem; font-weight: 600; color: var(--text); max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
     /* ── LAYOUT ── */
-    .main-wrapper { margin-left: var(--sidebar-w); padding-top: var(--topbar-h); min-height: 100vh; }
-    .content-area { padding: 1.5rem; }
+    .main-wrapper {
+        margin-left: var(--sidebar-w);
+        padding-top: var(--topbar-h);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+    .content-area {
+        padding: 1.5rem;
+        flex: 1;
+    }
+
+    /* ── FOOTER ── */
+    .main-footer {
+        text-align: center;
+        padding: .85rem 1.5rem;
+        font-size: .72rem;
+        color: var(--text-light);
+        border-top: 1px solid var(--border);
+        background: #fff;
+        flex-shrink: 0;
+    }
 
     /* ── PAGE COMPONENTS ── */
     .page-header { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
@@ -257,6 +277,7 @@
     .stat-icon.green  { background: linear-gradient(135deg,#D1FAE5,#A7F3D0); color: #059669; }
     .stat-icon.red    { background: linear-gradient(135deg,#FEE2E2,#FECACA); color: #DC2626; }
     .stat-icon.gold   { background: linear-gradient(135deg,#FEF3C7,#FDE68A); color: #D97706; }
+    .stat-icon.yellow { background: linear-gradient(135deg,#FEF3C7,#FDE68A); color: #D97706; }
     .stat-val { font-size: 1.75rem; font-weight: 800; color: var(--primary); line-height: 1; }
     .stat-lbl { font-size: .72rem; color: var(--text-muted); margin-top: .25rem; font-weight: 500; }
 
@@ -292,6 +313,8 @@
     .btn-info:hover { background: #0369A1; color: #fff; }
     .btn-outline-primary { color: var(--primary); border-color: var(--primary); }
     .btn-outline-primary:hover { background: var(--primary); color: #fff; }
+    .btn-outline-secondary { color: var(--text-muted); border-color: var(--border); }
+    .btn-outline-secondary:hover { background: var(--bg); color: var(--text); }
     .btn-sm { font-size: .75rem; padding: .3rem .65rem; }
     .btn-action { width: 32px; height: 32px; padding: 0; justify-content: center; border-radius: var(--radius-sm); }
 
@@ -333,6 +356,19 @@
     .empty-state i { font-size: 3rem; display: block; margin-bottom: 1rem; opacity: .5; }
     .empty-state p { font-size: .85rem; margin: 0 0 1rem; }
 
+    /* ── WELCOME BANNER (user) ── */
+    .welcome-banner {
+        background: linear-gradient(135deg, var(--primary) 0%, #0F2540 55%, var(--secondary-dark) 100%);
+        border-radius: var(--radius-lg);
+        padding: 1.75rem 2rem;
+        color: #fff;
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-md);
+    }
+    .welcome-banner-content { position: relative; z-index: 1; }
+
     /* ── RESPONSIVE ── */
     @media (max-width: 991px) {
         .sidebar { transform: translateX(-100%); }
@@ -356,6 +392,7 @@
 @include('admin.layouts.sidebar')
 
 <div class="main-wrapper" id="mainWrapper">
+
     @include('admin.layouts.topnavbar')
 
     <main class="content-area">
@@ -380,11 +417,14 @@
         @endif
 
         @yield('content')
+
     </main>
 
-    <footer class="text-center py-3" style="font-size:.72rem; color:var(--text-light); border-top:1px solid var(--border); background:#fff;">
-        &copy; {{ date('Y') }} <strong style="color:var(--primary)">SPK Bantuan Sosial</strong> — Kelurahan Harjamukti &nbsp;·&nbsp; All rights reserved
+    <footer class="main-footer">
+        &copy; {{ date('Y') }} <strong style="color:var(--primary);">SPK Bantuan Sosial</strong>
+        — Kelurahan Harjamukti &nbsp;·&nbsp; All rights reserved
     </footer>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -392,8 +432,10 @@
     const sidebar  = document.getElementById('sidebar');
     const backdrop = document.getElementById('sidebarBackdrop');
     const toggle   = document.getElementById('sidebarToggle');
+
     if (toggle)   toggle.addEventListener('click', () => { sidebar.classList.add('open'); backdrop.classList.add('show'); });
     if (backdrop) backdrop.addEventListener('click', () => { sidebar.classList.remove('open'); backdrop.classList.remove('show'); });
+
     setTimeout(() => {
         document.querySelectorAll('.alert').forEach(a => {
             const b = bootstrap.Alert.getOrCreateInstance(a);

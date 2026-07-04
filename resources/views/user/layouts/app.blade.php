@@ -53,7 +53,7 @@
         -webkit-font-smoothing: antialiased;
     }
 
-    /* ── SIDEBAR (user — gradien hijau ke navy) ── */
+    /* ── SIDEBAR ── */
     .sidebar {
         position: fixed; top: 0; left: 0;
         width: var(--sidebar-w); height: 100vh;
@@ -71,8 +71,7 @@
         flex-shrink: 0; text-decoration: none;
     }
     .sidebar-logo {
-        width: 46px; height: 46px;
-        border-radius: 12px;
+        width: 46px; height: 46px; border-radius: 12px;
         background: rgba(255,255,255,.95);
         display: flex; align-items: center; justify-content: center;
         flex-shrink: 0; overflow: hidden; padding: 3px;
@@ -118,16 +117,13 @@
     }
     .sidebar-nav .nav-link .nav-icon { font-size: 1rem; width: 20px; text-align: center; flex-shrink: 0; }
     .sidebar-nav .nav-link:hover {
-        color: #fff;
-        background: rgba(255,255,255,.08);
-        border-left-color: rgba(249,199,79,.5);
-        padding-left: 1.45rem;
+        color: #fff; background: rgba(255,255,255,.08);
+        border-left-color: rgba(249,199,79,.5); padding-left: 1.45rem;
     }
     .sidebar-nav .nav-link.active {
         color: #fff;
         background: linear-gradient(90deg, rgba(249,199,79,.2) 0%, rgba(249,199,79,.04) 100%);
-        border-left-color: var(--gold);
-        font-weight: 600;
+        border-left-color: var(--gold); font-weight: 600;
     }
     .sidebar-nav .nav-link.active .nav-icon { color: var(--gold); }
 
@@ -221,8 +217,28 @@
     .topbar-username { font-size: .8rem; font-weight: 600; color: var(--text); max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
     /* ── LAYOUT ── */
-    .main-wrapper { margin-left: var(--sidebar-w); padding-top: var(--topbar-h); min-height: 100vh; }
-    .content-area { padding: 1.5rem; }
+    .main-wrapper {
+        margin-left: var(--sidebar-w);
+        padding-top: var(--topbar-h);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+    .content-area {
+        padding: 1.5rem;
+        flex: 1;
+    }
+
+    /* ── FOOTER ── */
+    .main-footer {
+        text-align: center;
+        padding: .85rem 1.5rem;
+        font-size: .72rem;
+        color: var(--text-light);
+        border-top: 1px solid var(--border);
+        background: #fff;
+        flex-shrink: 0;
+    }
 
     /* ── PAGE COMPONENTS ── */
     .page-header { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
@@ -277,6 +293,8 @@
     .btn-danger:hover { background: #B91C1C; color: #fff; }
     .btn-outline-primary { color: var(--secondary); border-color: var(--secondary); }
     .btn-outline-primary:hover { background: var(--secondary); color: #fff; }
+    .btn-outline-secondary { color: var(--text-muted); border-color: var(--border); }
+    .btn-outline-secondary:hover { background: var(--bg); color: var(--text); }
     .btn-sm { font-size: .75rem; padding: .3rem .65rem; }
 
     /* ── FORMS ── */
@@ -304,7 +322,7 @@
     .empty-state i { font-size: 3rem; display: block; margin-bottom: 1rem; opacity: .5; }
     .empty-state p { font-size: .85rem; margin: 0 0 1rem; }
 
-    /* ── WELCOME BANNER (user) ── */
+    /* ── WELCOME BANNER ── */
     .welcome-banner {
         background: linear-gradient(135deg, var(--secondary) 0%, #1A4B3A 60%, var(--primary) 100%);
         border-radius: var(--radius-lg);
@@ -344,9 +362,11 @@
 @include('user.layouts.sidebar')
 
 <div class="main-wrapper" id="mainWrapper">
+
     @include('user.layouts.topnavbar')
 
     <main class="content-area">
+
         @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show mb-3" role="alert">
             <i class="bi bi-check-circle-fill me-2"></i>{{ session('success') }}
@@ -367,11 +387,14 @@
         @endif
 
         @yield('content')
+
     </main>
 
-    <footer class="text-center py-3" style="font-size:.72rem; color:var(--text-light); border-top:1px solid var(--border); background:#fff;">
-        &copy; {{ date('Y') }} <strong style="color:var(--secondary)">SPK Bantuan Sosial</strong> — Kelurahan Harjamukti
+    <footer class="main-footer">
+        &copy; {{ date('Y') }} <strong style="color:var(--secondary);">SPK Bantuan Sosial</strong>
+        — Kelurahan Harjamukti &nbsp;·&nbsp; All rights reserved
     </footer>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
