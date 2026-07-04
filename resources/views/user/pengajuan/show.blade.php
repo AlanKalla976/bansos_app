@@ -1,6 +1,8 @@
 @extends('user.layouts.app')
 
 @section('title', 'Detail Pengajuan Bantuan')
+@section('page-title', 'Pengajuan Bantuan')
+@section('breadcrumb', 'Pengajuan Bantuan')
 
 @section('content')
 <div class="container-fluid py-2">

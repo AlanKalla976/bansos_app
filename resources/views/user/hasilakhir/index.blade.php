@@ -1,6 +1,8 @@
 @extends('user.layouts.app')
 
 @section('title', 'Hasil Penilaian')
+@section('page-title', 'Hasil Kelayakan')
+@section('breadcrumb', 'Hasil Kelayakan')
 
 @push('styles')
 <style>

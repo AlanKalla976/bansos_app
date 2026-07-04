@@ -1,6 +1,8 @@
 @extends('user.layouts.app')
 
 @section('title', 'Pengajuan Berhasil')
+@section('page-title', 'Pengajuan Bantuan')
+@section('breadcrumb', 'Pengajuan Bantuan')
 
 @section('content')
 <div class="container py-5">
