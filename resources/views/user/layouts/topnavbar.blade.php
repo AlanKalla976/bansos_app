@@ -26,10 +26,6 @@
             {{ \Carbon\Carbon::now()->locale('id')->isoFormat('dddd, D MMM Y') }}
         </span>
 
-        <a href="{{ route('user.pengajuan.index') }}" class="topbar-icon-btn" title="Pengajuan Saya">
-            <i class="bi bi-bell-fill"></i>
-        </a>
-
         <div class="dropdown">
             <div class="topbar-profile" data-bs-toggle="dropdown" aria-expanded="false">
                 <div class="topbar-avatar">

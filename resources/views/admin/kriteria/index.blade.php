@@ -1,6 +1,8 @@
 @extends('admin.layouts.app')
 
 @section('title', 'Kriteria & Perhitungan AHP')
+@section('page-title', 'Kriteria')
+@section('breadcrumb', 'Kriteria')
 
 @push('styles')
 <style>

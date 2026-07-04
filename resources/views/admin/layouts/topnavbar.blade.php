@@ -25,11 +25,6 @@
             <i class="bi bi-calendar3" style="color:var(--accent);"></i>
             {{ \Carbon\Carbon::now()->locale('id')->isoFormat('dddd, D MMM Y') }}
         </span>
-
-        <a href="#" class="topbar-icon-btn" title="Notifikasi" data-bs-toggle="dropdown" aria-expanded="false">
-            <i class="bi bi-bell-fill"></i>
-            <span class="badge-dot"></span>
-        </a>
         <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3 p-2" style="min-width:280px; margin-top:.5rem;">
             <li class="px-2 pb-2">
                 <div class="d-flex align-items-center justify-content-between">

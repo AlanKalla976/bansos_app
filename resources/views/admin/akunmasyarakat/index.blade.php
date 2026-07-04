@@ -1,6 +1,8 @@
 @extends('admin.layouts.app')
 
 @section('title', 'Akun Masyarakat')
+@section('page-title', 'Akun Masyarakat')
+@section('breadcrumb', 'Akun Masyarakat')
 
 @push('styles')
 <style>

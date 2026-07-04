@@ -1,6 +1,8 @@
 @extends('admin.layouts.app')
 
 @section('title', 'Penilaian MOORA')
+@section('page-title', 'Penilaian')
+@section('breadcrumb', 'Penilaian')
 
 @push('styles')
 <style>

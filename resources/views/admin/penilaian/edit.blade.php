@@ -1,6 +1,8 @@
 @extends('admin.layouts.app')
 
 @section('title', 'Edit Penilaian')
+@section('page-title', 'Penilaian')
+@section('breadcrumb', 'Penilaian')
 
 @section('content')
 <div class="container-fluid">

@@ -79,26 +79,6 @@
             Hasil Kelayakan
         </a>
 
-        <div class="nav-section">
-            <div class="nav-section-label">Laporan</div>
-        </div>
-        <a href="{{ route('admin.hasilakhir.export-excel') }}" class="nav-link">
-            <i class="bi bi-file-earmark-excel-fill nav-icon"></i>
-            Ekspor Excel
-        </a>
-        <a href="{{ route('admin.hasilakhir.export-pdf') }}" class="nav-link">
-            <i class="bi bi-file-earmark-pdf-fill nav-icon"></i>
-            Ekspor PDF
-        </a>
-
-        <div class="nav-section">
-            <div class="nav-section-label">Pengaturan</div>
-        </div>
-        <a href="{{ route('admin.akunmasyarakat.index') }}" class="nav-link">
-            <i class="bi bi-person-gear nav-icon"></i>
-            Kelola Pengguna
-        </a>
-
     </nav>
 
     {{-- ── Footer ── --}}

@@ -1,6 +1,8 @@
 @extends('admin.layouts.app')
 
 @section('title', 'Tambah Akun Masyarakat')
+@section('page-title', 'Akun Masyarakat')
+@section('breadcrumb', 'Akun Masyarakat')
 
 @section('content')
 <div class="container-fluid py-4">
