@@ -3,14 +3,14 @@
 namespace App\Exports;
 
 use App\Models\HasilAkhir;
-use Maatwebsite\Excel\Concerns\FromQuery;
+use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class HasilAkhirExport implements FromQuery, WithHeadings, WithMapping, WithStyles, ShouldAutoSize
+class HasilAkhirExport implements FromCollection, WithHeadings, WithMapping, WithStyles, ShouldAutoSize
 {
     protected array $filters;
 
@@ -19,7 +19,31 @@ class HasilAkhirExport implements FromQuery, WithHeadings, WithMapping, WithStyl
         $this->filters = $filters;
     }
 
-    public function query()
+    /**
+     * Hitung status Layak/Tidak Layak berdasarkan kuota per jenis bantuan.
+     */
+    private function attachStatusByKuota($items)
+    {
+        $grouped = $items->groupBy(function ($h) {
+            return $h->pengajuan->bantuanSosial->id ?? 'unknown';
+        });
+
+        foreach ($grouped as $bantuanId => $group) {
+            $kuota = optional($group->first()->pengajuan->bantuanSosial)->kuota ?? 0;
+
+            $sorted = $group->sortBy(function ($h) {
+                return $h->ranking;
+            })->values();
+
+            foreach ($sorted as $index => $h) {
+                $h->status_computed = ($index < $kuota) ? 'Layak' : 'Tidak Layak';
+            }
+        }
+
+        return $items;
+    }
+
+    public function collection()
     {
         $query = HasilAkhir::with(['pengajuan.bantuanSosial'])
             ->orderBy('ranking');
@@ -38,11 +62,16 @@ class HasilAkhirExport implements FromQuery, WithHeadings, WithMapping, WithStyl
             );
         }
 
+        $items = $query->get();
+        $items = $this->attachStatusByKuota($items);
+
         if (!empty($this->filters['status'])) {
-            $query->where('status', $this->filters['status']);
+            $items = $items->filter(function ($h) {
+                return $h->status_computed === $this->filters['status'];
+            })->values();
         }
 
-        return $query;
+        return $items;
     }
 
     public function headings(): array
@@ -52,7 +81,7 @@ class HasilAkhirExport implements FromQuery, WithHeadings, WithMapping, WithStyl
             'Nama',
             'NIK',
             'Jenis Bantuan',
-            'Nilai Yi',
+            'Total Skor',
             'Status',
         ];
     }
@@ -65,7 +94,7 @@ class HasilAkhirExport implements FromQuery, WithHeadings, WithMapping, WithStyl
             $row->pengajuan->nik                         ?? '-',
             $row->pengajuan->bantuanSosial->nama_bantuan ?? '-',
             number_format($row->nilai_yi, 8),
-            $row->status,
+            $row->status_computed,
         ];
     }
 

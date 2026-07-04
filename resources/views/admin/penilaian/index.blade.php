@@ -221,11 +221,11 @@
         </div>
     </div>
 
-    {{-- Nilai Yi & Ranking --}}
+    {{-- Total Skor & Ranking --}}
     <div class="page-card mb-4">
         <div class="card-head">
             <h6 class="card-head-title">
-                <i class="bi bi-trophy"></i>4. Nilai Optimasi Yi &amp; Ranking
+                <i class="bi bi-trophy"></i>4. Total Skor &amp; Ranking
             </h6>
         </div>
         <div class="card-body-inner">
@@ -235,7 +235,9 @@
                 Yi = Σ(wj × Xij*) <strong style="color:#065F46;">Benefit</strong>
                 − Σ(wj × Xij*) <strong style="color:#991B1B;">Cost</strong>
                 &nbsp;|&nbsp;
-                Batas Layak: Yi &ge; 0.35
+                <strong>Kelayakan:</strong> ditentukan oleh kuota masing-masing jenis bantuan —
+                ranking 1 s.d. kuota pada jenis bantuan tersebut dinyatakan <strong style="color:#065F46;">Layak</strong>,
+                sisanya <strong style="color:#991B1B;">Tidak Layak</strong>.
             </div>
             <div class="table-responsive">
                 <table class="table align-middle mb-0 tbl-navy tbl-navy-center">
@@ -245,13 +247,13 @@
                             <th style="text-align:left !important;">Nama</th>
                             <th>NIK</th>
                             <th>Jenis Bantuan</th>
-                            <th>Nilai Yi</th>
+                            <th>Total Skor</th>
                             <th style="width:150px;">Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach($moora['ranked'] as $rank => $r)
-                        @php $isLayak = $r['yi'] >= 0.35; @endphp
+                        @php $isLayak = $r['status'] === 'Layak'; @endphp
                         <tr>
                             <td>
                                 <span class="rank-badge {{ ($rank + 1) <= 3 ? 'rank-'.($rank+1) : 'rank-n' }}">

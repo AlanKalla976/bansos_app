@@ -10,6 +10,33 @@ use Illuminate\Support\Facades\Auth;
 
 class HasilAkhirController extends Controller
 {
+    /**
+     * Hitung status Layak/Tidak Layak berdasarkan kuota per jenis bantuan.
+     * Ranking 1..kuota (di dalam masing-masing jenis bantuan) => Layak.
+     *
+     * @param \Illuminate\Support\Collection $items Koleksi HasilAkhir (relasi pengajuan.bantuanSosial harus sudah di-load)
+     */
+    private function attachStatusByKuota($items)
+    {
+        $grouped = $items->groupBy(function ($h) {
+            return $h->pengajuan->bantuanSosial->id ?? 'unknown';
+        });
+
+        foreach ($grouped as $bantuanId => $group) {
+            $kuota = optional($group->first()->pengajuan->bantuanSosial)->kuota ?? 0;
+
+            $sorted = $group->sortBy(function ($h) {
+                return $h->ranking;
+            })->values();
+
+            foreach ($sorted as $index => $h) {
+                $h->status_computed = ($index < $kuota) ? 'Layak' : 'Tidak Layak';
+            }
+        }
+
+        return $items;
+    }
+
     public function index(Request $request)
     {
         $user = Auth::user();
@@ -45,19 +72,28 @@ class HasilAkhirController extends Controller
         }
 
         // Sudah mengajukan dan sudah ada hasil MOORA
-        // Tampilkan semua hasil dengan fitur search
-        $query = HasilAkhir::with(['pengajuan.bantuanSosial'])
-            ->orderBy('ranking');
+        // Ambil SEMUA hasil (tanpa filter search dulu) supaya status per-kuota
+        // dihitung berdasarkan ranking di dalam masing-masing jenis bantuan secara utuh,
+        // baru difilter oleh pencarian setelahnya.
+        $allHasilAkhirs = HasilAkhir::with(['pengajuan.bantuanSosial'])
+            ->orderBy('ranking')
+            ->get();
+
+        $allHasilAkhirs = $this->attachStatusByKuota($allHasilAkhirs);
+
+        // Samakan status_computed milik hasilSendiri dengan yang sudah dihitung di atas
+        $hasilSendiri = $allHasilAkhirs->firstWhere('hasil_id', $hasilSendiri->hasil_id) ?? $hasilSendiri;
+
+        $hasilAkhirs = $allHasilAkhirs;
 
         if ($request->filled('search')) {
-            $search = $request->search;
-            $query->whereHas('pengajuan', function ($q) use ($search) {
-                $q->where('nama', 'like', '%' . $search . '%')
-                  ->orWhere('nik', 'like', '%' . $search . '%');
-            });
+            $search = strtolower($request->search);
+            $hasilAkhirs = $hasilAkhirs->filter(function ($h) use ($search) {
+                $nama = strtolower($h->pengajuan->nama ?? '');
+                $nik  = strtolower($h->pengajuan->nik ?? '');
+                return str_contains($nama, $search) || str_contains($nik, $search);
+            })->values();
         }
-
-        $hasilAkhirs = $query->get();
 
         return view('user.hasilakhir.index', [
             'status'       => 'sudah_dinilai',

@@ -41,7 +41,7 @@
                 <th>Nama</th>
                 <th>NIK</th>
                 <th>Jenis Bantuan</th>
-                <th style="width:130px;">Nilai Yi</th>
+                <th style="width:130px;">Total Skor</th>
                 <th style="width:90px;">Status</th>
             </tr>
         </thead>
@@ -53,8 +53,8 @@
                 <td>{{ $h->pengajuan->nik  ?? '-' }}</td>
                 <td>{{ $h->pengajuan->bantuanSosial->nama_bantuan ?? '-' }}</td>
                 <td style="font-family:monospace;">{{ number_format($h->nilai_yi, 8) }}</td>
-                <td class="{{ $h->status === 'Layak' ? 'layak' : 'tdk-layak' }}">
-                    {{ $h->status }}
+                <td class="{{ $h->status_computed === 'Layak' ? 'layak' : 'tdk-layak' }}">
+                    {{ $h->status_computed }}
                 </td>
             </tr>
             @empty
@@ -69,8 +69,8 @@
 
     <div class="footer">
         Total: {{ $hasilAkhirs->count() }} data &nbsp;|&nbsp;
-        Layak: {{ $hasilAkhirs->where('status','Layak')->count() }} &nbsp;|&nbsp;
-        Tidak Layak: {{ $hasilAkhirs->where('status','Tidak Layak')->count() }}
+        Layak: {{ $hasilAkhirs->where('status_computed','Layak')->count() }} &nbsp;|&nbsp;
+        Tidak Layak: {{ $hasilAkhirs->where('status_computed','Tidak Layak')->count() }}
     </div>
 </body>
 </html>

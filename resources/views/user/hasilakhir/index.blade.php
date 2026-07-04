@@ -158,6 +158,10 @@
     ══════════════════════════════════════════ --}}
     @elseif($status === 'sudah_dinilai')
 
+    @php
+        $isLayakSendiri = $hasilSendiri->status_computed === 'Layak';
+    @endphp
+
     {{-- Card hasil milik user sendiri --}}
     <div class="card border-0 rounded-4 mb-4 text-white"
          style="background: linear-gradient(135deg, #1e3a5f, #2d6a4f);">
@@ -171,9 +175,6 @@
                     <p class="mb-0 opacity-75 small">
                         <i class="bi bi-gift me-1"></i>
                         {{ $hasilSendiri->pengajuan->bantuanSosial->nama_bantuan ?? '-' }}
-                        &nbsp;|&nbsp;
-                        <i class="bi bi-card-text me-1"></i>
-                        NIK: {{ $hasilSendiri->pengajuan->nik ?? '-' }}
                     </p>
                 </div>
                 <div class="col-auto text-center">
@@ -181,14 +182,13 @@
                     <h2 class="fw-bold mb-0">#{{ $hasilSendiri->ranking }}</h2>
                 </div>
                 <div class="col-auto text-center">
-                    <p class="small opacity-75 mb-0">Nilai Yi</p>
+                    <p class="small opacity-75 mb-0">Total Skor</p>
                     <p class="fw-bold mb-0 font-monospace">
                         {{ number_format($hasilSendiri->nilai_yi, 3) }}
                     </p>
                 </div>
                 <div class="col-auto">
-                    {{-- ✅ Threshold kelayakan: Nilai Yi > 0,35 --}}
-                    @if($hasilSendiri->nilai_yi > 0.35)
+                    @if($isLayakSendiri)
                         <span class="badge bg-success bg-opacity-75 rounded-pill px-3 py-2 fs-6">
                             <i class="bi bi-check-circle me-1"></i>Layak
                         </span>
@@ -207,7 +207,7 @@
         <form method="GET" action="{{ route('user.hasilakhir.index') }}" class="d-flex gap-2">
             <input type="text" name="search"
                    class="form-control form-control-sm"
-                   placeholder="Cari nama atau NIK..."
+                   placeholder="Cari nama..."
                    value="{{ request('search') }}"
                    style="max-width: 320px;">
             <button type="submit" class="btn btn-primary btn-sm">
@@ -245,9 +245,8 @@
                     <tr>
                         <th style="width: 100px;">Ranking</th>
                         <th>Nama</th>
-                        <th>NIK</th>
                         <th>Jenis Bantuan</th>
-                        <th style="width: 140px;">Nilai Yi</th>
+                        <th style="width: 140px;">Total Skor</th>
                         <th style="width: 150px; text-align: center;">Status</th>
                     </tr>
                 </thead>
@@ -255,8 +254,7 @@
                     @forelse($hasilAkhirs as $h)
                     @php
                         $isSendiri = $hasilSendiri && $h->hasil_id === $hasilSendiri->hasil_id;
-                        // ✅ Threshold kelayakan: Nilai Yi > 0,35
-                        $isLayak = $h->nilai_yi > 0.35;
+                        $isLayak = $h->status_computed === 'Layak';
                     @endphp
                     <tr style="{{ $isSendiri ? 'background: rgba(82, 183, 136, 0.08); font-weight: 600;' : '' }}">
                         <td class="ps-4">
@@ -267,9 +265,6 @@
                             @if($isSendiri)
                                 <span class="badge bg-primary rounded-pill ms-1" style="font-size:0.65rem;">Anda</span>
                             @endif
-                        </td>
-                        <td style="color:#64748B; font-size:.8rem; font-family:monospace;">
-                            {{ $h->pengajuan->nik ?? '-' }}
                         </td>
                         <td>
                             <span style="background:#EFF6FF; color:#1E3A5F; font-size:.7rem; font-weight:700; padding:.25rem .75rem; border-radius:20px; display:inline-block;">
@@ -289,7 +284,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6">
+                        <td colspan="5">
                             <div class="empty-state">
                                 <i class="bi bi-inbox"></i>
                                 <p>
@@ -312,11 +307,11 @@
             <small class="text-muted">
                 <i class="bi bi-info-circle me-1"></i>
                 <span class="text-success fw-semibold">
-                    {{ $hasilAkhirs->where('nilai_yi', '>', 0.35)->count() }} Layak
+                    {{ $hasilAkhirs->where('status_computed', 'Layak')->count() }} Layak
                 </span>
                 &nbsp;|&nbsp;
                 <span class="text-danger fw-semibold">
-                    {{ $hasilAkhirs->where('nilai_yi', '<=', 0.35)->count() }} Tidak Layak
+                    {{ $hasilAkhirs->where('status_computed', 'Tidak Layak')->count() }} Tidak Layak
                 </span>
             </small>
         </div>

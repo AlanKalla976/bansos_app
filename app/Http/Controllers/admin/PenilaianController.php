@@ -78,6 +78,37 @@ class PenilaianController extends Controller
         return view('admin.penilaian.edit', compact('pengajuan', 'kriterias', 'penilaians'));
     }
 
+    /**
+     * Tentukan status Layak/Tidak Layak berdasarkan kuota per jenis bantuan.
+     * Ranking 1..kuota (di dalam masing-masing jenis bantuan) => Layak.
+     *
+     * @param array $ranked Array hasil ranked dari MooraService, tiap item berisi 'pengajuan' (model Pengajuan) dan 'yi'
+     * @return array Ranked array yang sama, ditambah key 'status'
+     */
+    private function tentukanStatusByKuota(array $ranked): array
+    {
+        // Kelompokkan index berdasarkan jenis bantuan
+        $grouped = [];
+        foreach ($ranked as $idx => $r) {
+            $bantuanId = $r['pengajuan']->bantuanSosial->id ?? 'unknown';
+            $grouped[$bantuanId][] = $idx;
+        }
+
+        foreach ($grouped as $bantuanId => $indexes) {
+            // Kuota diambil dari bantuanSosial pertama pada grup ini
+            $firstIdx = $indexes[0];
+            $kuota    = optional($ranked[$firstIdx]['pengajuan']->bantuanSosial)->kuota ?? 0;
+
+            // Urutan dalam grup sudah sesuai urutan ranking global (karena $ranked sudah terurut Yi desc),
+            // jadi posisi ke-n di dalam grup ini = urutan kelayakan untuk jenis bantuan tersebut.
+            foreach ($indexes as $posisiDalamGrup => $idx) {
+                $ranked[$idx]['status'] = ($posisiDalamGrup < $kuota) ? 'Layak' : 'Tidak Layak';
+            }
+        }
+
+        return $ranked;
+    }
+
     // ── Hitung MOORA ──
     public function hitungMoora()
     {
@@ -88,7 +119,10 @@ class PenilaianController extends Controller
                 ->with('error', $hasil['error']);
         }
 
-        // Konversi agar aman di session (tanpa batasLayak — kelayakan ditentukan di view: yi >= 0.35)
+        // Tentukan status Layak/Tidak Layak berdasarkan kuota per jenis bantuan
+        $rankedWithStatus = $this->tentukanStatusByKuota($hasil['ranked']);
+
+        // Konversi agar aman di session
         $hasilSession = [
             'kriterias'   => $hasil['kriterias']->map(fn($k) => [
                 'kriteria_id'   => $k->kriteria_id,
@@ -112,8 +146,10 @@ class PenilaianController extends Controller
                 'nama'          => $r['pengajuan']->nama,
                 'nik'           => $r['pengajuan']->nik,
                 'jenis_bantuan' => $r['pengajuan']->bantuanSosial->nama_bantuan ?? '-',
+                'kuota'         => $r['pengajuan']->bantuanSosial->kuota ?? 0,
                 'yi'            => $r['yi'],
-            ], $hasil['ranked']),
+                'status'        => $r['status'],
+            ], $rankedWithStatus),
             'n' => $hasil['n'],
             'm' => $hasil['m'],
         ];

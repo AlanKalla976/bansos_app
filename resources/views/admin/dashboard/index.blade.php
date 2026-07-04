@@ -6,7 +6,6 @@
 
 @push('styles')
 <style>
-/* Welcome Banner */
 .welcome-banner {
     background: linear-gradient(135deg, var(--primary) 0%, #0F2540 55%, var(--secondary-dark) 100%);
     border-radius: var(--radius-lg); padding: 1.75rem 2rem;
@@ -16,14 +15,12 @@
 .welcome-banner::before {
     content: ''; position: absolute;
     width: 350px; height: 350px; border-radius: 50%;
-    background: rgba(255,255,255,.04);
-    right: -80px; top: -120px;
+    background: rgba(255,255,255,.04); right: -80px; top: -120px;
 }
 .welcome-banner::after {
     content: ''; position: absolute;
     width: 200px; height: 200px; border-radius: 50%;
-    background: rgba(249,199,79,.06);
-    right: 120px; bottom: -60px;
+    background: rgba(249,199,79,.06); right: 120px; bottom: -60px;
 }
 .welcome-pattern {
     position: absolute; inset: 0;
@@ -39,8 +36,6 @@
     color: var(--gold); padding: .3rem .75rem; border-radius: 20px;
     font-size: .72rem; font-weight: 700; margin-bottom: .75rem; letter-spacing: .5px;
 }
-
-/* Info Sistem */
 .info-row {
     display: flex; justify-content: space-between; align-items: center;
     padding: .6rem 0; border-bottom: 1px solid #F1F5F9; font-size: .82rem;
@@ -56,8 +51,6 @@
     background: #D1FAE5; color: #065F46; border-radius: 20px;
     padding: .2rem .65rem; font-size: .7rem; font-weight: 700;
 }
-
-/* Table Navy */
 .tbl-navy thead tr,
 .tbl-navy thead tr th {
     background: #1E3A5F !important;
@@ -69,10 +62,7 @@
     border: none !important;
     border-bottom: none !important;
 }
-.tbl-navy tbody tr {
-    border-bottom: 1px solid #F1F5F9 !important;
-    transition: background .15s;
-}
+.tbl-navy tbody tr { border-bottom: 1px solid #F1F5F9 !important; transition: background .15s; }
 .tbl-navy tbody tr:last-child { border-bottom: none !important; }
 .tbl-navy tbody tr:hover td { background: #F8FAFC !important; }
 .tbl-navy tbody td {
@@ -155,9 +145,10 @@
             <select name="jenis_bantuan" class="form-select form-select-sm rounded-3"
                     style="width:auto; font-size:.8rem;" onchange="this.form.submit()">
                 <option value="semua" @selected($filterBantuan == 'semua')>Semua Bantuan</option>
-                {{-- Perbaikan Foreach agar membaca ID objek dengan benar --}}
                 @foreach($jenisBantuanList as $bantuan)
-                    <option value="{{ $bantuan->id }}" @selected($filterBantuan == $bantuan->id)>{{ $bantuan->nama_bantuan }}</option>
+                    <option value="{{ $bantuan->id }}" @selected($filterBantuan == $bantuan->id)>
+                        {{ $bantuan->nama_bantuan }}
+                    </option>
                 @endforeach
             </select>
         </form>
@@ -208,29 +199,31 @@
                             <th style="width:40px;">No</th>
                             <th>Nama Pemohon</th>
                             <th>Jenis Bantuan</th>
-                            <th>Nilai Yi</th>
+                            <th>Total Skor</th>
                             <th style="text-align:center;">Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($hasilTerbaru as $i => $h)
+                        @php
+                            $kuota     = $h->pengajuan->bantuanSosial->kuota ?? 0;
+                            $isLayak   = $h->ranking <= $kuota;
+                        @endphp
                         <tr>
                             <td style="color:#94A3B8; font-size:.78rem;">{{ $i + 1 }}</td>
                             <td style="font-weight:600; color:#1E293B; font-size:.83rem;">
-                                {{ $h->pengajuan->penduduk->nama ?? $h->pengajuan->nama ?? '-' }}
+                                {{ $h->pengajuan->user->name ?? $h->pengajuan->nama ?? '-' }}
                             </td>
                             <td>
                                 <span style="background:#EFF6FF; color:#1E3A5F; font-size:.7rem; font-weight:700; padding:.25rem .75rem; border-radius:20px; display:inline-block;">
                                     {{ $h->pengajuan->bantuanSosial->nama_bantuan ?? '-' }}
                                 </span>
                             </td>
-                            {{-- Perbaikan format angka menjadi 3 digit di belakang koma --}}
                             <td style="font-family:monospace; font-weight:700; font-size:.78rem; color:#2D6A4F;">
                                 {{ number_format($h->nilai_yi, 3) }}
                             </td>
                             <td style="text-align:center;">
-                                {{-- Penentuan warna badge berdasarkan batas nilai_yi >= 0.35 --}}
-                                @if($h->nilai_yi >= 0.35)
+                                @if($isLayak)
                                     <span style="background:#D1FAE5; color:#065F46; font-size:.7rem; font-weight:700; padding:.28rem .75rem; border-radius:20px; display:inline-block;">
                                         Layak
                                     </span>

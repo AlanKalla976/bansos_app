@@ -143,15 +143,15 @@
                     <th>Nama</th>
                     <th>NIK</th>
                     <th>Jenis Bantuan</th>
-                    <th style="width:160px;">Nilai Yi</th>
+                    <th style="width:160px;">Total Skor</th>
                     <th style="width:150px; text-align:center;">Status</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($hasilAkhirs as $h)
                 @php
-                    // ✅ Threshold kelayakan: Nilai Yi > 0,35
-                    $isLayak = $h->nilai_yi > 0.35;
+                    // Status ditentukan oleh kuota per jenis bantuan (dihitung di controller)
+                    $isLayak = $h->status_computed === 'Layak';
                 @endphp
                 <tr>
                     <td>

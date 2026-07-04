@@ -22,21 +22,37 @@ class DashboardController extends Controller
         $totalMasyarakat = User::where('role', 'masyarakat')->count();
         $totalPengajuan  = Pengajuan::count();
 
-        $totalBPNT = Pengajuan::whereHas('bantuanSosial', function ($q) {
-            $q->where('nama_bantuan', 'LIKE', '%BPNT%');
-        })->count();
+        $totalBPNT = Pengajuan::whereHas('bantuanSosial', fn($q) =>
+            $q->where('nama_bantuan', 'LIKE', '%BPNT%')
+        )->count();
 
-        $totalBLT = Pengajuan::whereHas('bantuanSosial', function ($q) {
-            $q->where('nama_bantuan', 'LIKE', '%BLT%');
-        })->count();
+        $totalBLT = Pengajuan::whereHas('bantuanSosial', fn($q) =>
+            $q->where('nama_bantuan', 'LIKE', '%BLT%')
+        )->count();
 
-        $totalPKH = Pengajuan::whereHas('bantuanSosial', function ($q) {
-            $q->where('nama_bantuan', 'LIKE', '%PKH%');
-        })->count();
+        $totalPKH = Pengajuan::whereHas('bantuanSosial', fn($q) =>
+            $q->where('nama_bantuan', 'LIKE', '%PKH%')
+        )->count();
 
-        // Perbaikan batas kelayakan (>= 0.35) untuk Counter Statistik
-        $totalLayak = HasilAkhir::where('nilai_yi', '>=', 0.35)->count();
-        $totalTidakLayak = HasilAkhir::where('nilai_yi', '<', 0.35)->count();
+        // Hitung Layak/Tidak Layak berdasarkan kuota per jenis bantuan
+        $totalLayak      = 0;
+        $totalTidakLayak = 0;
+
+        $semuaBantuan = BantuanSosial::all();
+        foreach ($semuaBantuan as $bantuan) {
+            $kuota = $bantuan->kuota ?? 0;
+            $hasil = HasilAkhir::whereHas('pengajuan', fn($q) =>
+                $q->where('bantuan_sosial_id', $bantuan->id)
+            )->orderBy('ranking')->get();
+
+            foreach ($hasil as $item) {
+                if ($item->ranking <= $kuota) {
+                    $totalLayak++;
+                } else {
+                    $totalTidakLayak++;
+                }
+            }
+        }
 
         // ==========================
         // Filter Dashboard
@@ -50,7 +66,7 @@ class DashboardController extends Controller
             $tahunList = collect([date('Y')]);
         }
 
-        $filterTahun = $request->tahun ?? date('Y');
+        $filterTahun   = $request->tahun ?? date('Y');
         $filterBantuan = $request->jenis_bantuan ?? 'semua';
 
         $jenisBantuanList = BantuanSosial::all();
@@ -66,7 +82,7 @@ class DashboardController extends Controller
         $hasilTerbaru = HasilAkhir::with([
                 'pengajuan',
                 'pengajuan.user',
-                'pengajuan.bantuanSosial'
+                'pengajuan.bantuanSosial',
             ])
             ->latest()
             ->take(5)
@@ -92,48 +108,35 @@ class DashboardController extends Controller
 
     private function getChartData($tahun, $filterBantuan)
     {
-        // Menentukan list bantuan yang akan ditampilkan di grafik berdasarkan filter
         if ($filterBantuan != 'semua') {
             $bantuanSosialList = BantuanSosial::where('id', $filterBantuan)->get();
         } else {
             $bantuanSosialList = BantuanSosial::all();
         }
 
-        $query = HasilAkhir::with([
-            'pengajuan',
-            'pengajuan.bantuanSosial'
-        ])->whereYear('created_at', $tahun);
-
-        if ($filterBantuan != 'semua') {
-            $query->whereHas('pengajuan', function ($q) use ($filterBantuan) {
-                $q->where('bantuan_sosial_id', $filterBantuan);
-            });
-        }
-
-        $hasil = $query->get();
-
-        $labels = [];
-        $layak = [];
+        $labels     = [];
+        $layak      = [];
         $tidakLayak = [];
 
         foreach ($bantuanSosialList as $bantuan) {
-            $labels[] = $bantuan->nama_bantuan;
+            $kuota = $bantuan->kuota ?? 0;
 
-            // Penentuan Layak/Tidak Layak di dalam grafik disesuaikan dengan nilai_yi (0.35)
-            $layak[] = $hasil->filter(function ($item) use ($bantuan) {
-                return optional($item->pengajuan)->bantuan_sosial_id == $bantuan->id
-                    && $item->nilai_yi >= 0.35;
-            })->count();
+            $hasil = HasilAkhir::with(['pengajuan.bantuanSosial'])
+                ->whereYear('created_at', $tahun)
+                ->whereHas('pengajuan', fn($q) =>
+                    $q->where('bantuan_sosial_id', $bantuan->id)
+                )
+                ->orderBy('ranking')
+                ->get();
 
-            $tidakLayak[] = $hasil->filter(function ($item) use ($bantuan) {
-                return optional($item->pengajuan)->bantuan_sosial_id == $bantuan->id
-                    && $item->nilai_yi < 0.35;
-            })->count();
+            $labels[]     = $bantuan->nama_bantuan;
+            $layak[]      = $hasil->filter(fn($item) => $item->ranking <= $kuota)->count();
+            $tidakLayak[] = $hasil->filter(fn($item) => $item->ranking > $kuota)->count();
         }
 
         return [
-            'labels' => $labels,
-            'layak' => $layak,
+            'labels'     => $labels,
+            'layak'      => $layak,
             'tidakLayak' => $tidakLayak,
         ];
     }
