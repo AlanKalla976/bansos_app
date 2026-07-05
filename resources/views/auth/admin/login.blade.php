@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login Admin — SPK Bantuan Sosial</title>
-    <link rel="icon" type="image/svg+xml" href="{{ asset('images/logo.svg') }}">
+    <link rel="icon" type="image/png" href="{{ asset('images/logo-pemkot.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -68,9 +68,9 @@
             text-align: center;
         }
         .auth-logo-circle {
-            width: 110px; height: 110px;
+            width: 120px; height: 120px;
             border-radius: 50%;
-            background: rgba(255,255,255,.1);
+            background: #fff;
             border: 2px solid rgba(255,255,255,.15);
             display: flex;
             align-items: center;
@@ -78,19 +78,21 @@
             margin: 0 auto 1.5rem;
             backdrop-filter: blur(8px);
             position: relative;
+            box-shadow: 0 8px 24px rgba(0,0,0,.25);
         }
         .auth-logo-circle::before {
             content: '';
             position: absolute;
             inset: -6px;
             border-radius: 50%;
-            border: 2px dashed rgba(249,199,79,.3);
+            border: 2px dashed rgba(249,199,79,.4);
             animation: spin 20s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .auth-logo-icon {
-            font-size: 3rem;
-            color: var(--gold);
+        .auth-logo-circle img {
+            width: 88px;
+            height: 88px;
+            object-fit: contain;
         }
         .auth-brand-title {
             font-size: 1rem;
@@ -174,8 +176,8 @@
             margin-bottom: 1.75rem;
         }
         .auth-card-header .header-icon {
-            width: 56px; height: 56px;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            width: 64px; height: 64px;
+            background: #fff;
             border-radius: 16px;
             display: flex;
             align-items: center;
@@ -183,7 +185,14 @@
             margin: 0 auto 1rem;
             font-size: 1.5rem;
             color: #fff;
-            box-shadow: 0 4px 16px rgba(30,58,95,.3);
+            box-shadow: 0 4px 16px rgba(30,58,95,.25);
+            border: 1.5px solid #E2E8F0;
+            padding: 6px;
+        }
+        .auth-card-header .header-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
         .auth-card-header h2 {
             font-size: 1.35rem;
@@ -319,7 +328,7 @@
         <div class="auth-pattern"></div>
         <div class="auth-brand">
             <div class="auth-logo-circle">
-                <i class="bi bi-house-heart-fill auth-logo-icon"></i>
+                <img src="{{ asset('images/logo-pemkot.png') }}" alt="Logo Pemerintah Kota">
             </div>
             <div class="auth-brand-title">Sistem Pendukung Keputusan</div>
             <div class="auth-brand-name"><span>Bantuan</span> Sosial</div>
@@ -348,7 +357,7 @@
             <div class="auth-card">
                 <div class="auth-card-header">
                     <div class="header-icon">
-                        <i class="bi bi-shield-lock-fill"></i>
+                        <img src="{{ asset('images/logo-pemkot.png') }}" alt="Logo Pemerintah Kota">
                     </div>
                     <h2>Login Admin</h2>
                     <p>Masuk ke panel administrator SPK Bantuan Sosial</p>

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daftar Akun — SPK Bantuan Sosial</title>
-    <link rel="icon" type="image/svg+xml" href="{{ asset('images/logo.svg') }}">
+    <link rel="icon" type="image/png" href="{{ asset('images/logo-pemkot.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -63,20 +63,25 @@
         .auth-logo-circle {
             width: 100px; height: 100px;
             border-radius: 50%;
-            background: rgba(255,255,255,.1);
+            background: #fff;
             border: 2px solid rgba(255,255,255,.15);
             display: flex; align-items: center; justify-content: center;
             margin: 0 auto 1.25rem;
             position: relative;
+            box-shadow: 0 4px 20px rgba(0,0,0,.15);
         }
         .auth-logo-circle::before {
             content: ''; position: absolute; inset: -6px;
             border-radius: 50%;
-            border: 2px dashed rgba(249,199,79,.3);
+            border: 2px dashed rgba(249,199,79,.45);
             animation: spin 20s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .auth-logo-icon { font-size: 2.8rem; color: var(--gold); }
+        .auth-logo-circle img {
+            width: 72px;
+            height: 72px;
+            object-fit: contain;
+        }
         .auth-brand-title {
             font-size: .88rem; font-weight: 700;
             color: rgba(255,255,255,.65);
@@ -129,12 +134,18 @@
         .auth-card-header { text-align: center; margin-bottom: 1.5rem; }
         .auth-card-header .header-icon {
             width: 52px; height: 52px;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            background: #fff;
+            border: 1.5px solid #E2E8F0;
             border-radius: 14px;
             display: flex; align-items: center; justify-content: center;
             margin: 0 auto .85rem;
             font-size: 1.4rem; color: #fff;
-            box-shadow: 0 4px 14px rgba(30,58,95,.28);
+            box-shadow: 0 4px 14px rgba(30,58,95,.12);
+        }
+        .auth-card-header .header-icon img {
+            width: 36px;
+            height: 36px;
+            object-fit: contain;
         }
         .auth-card-header h2 { font-size: 1.25rem; font-weight: 800; color: var(--primary); margin: 0 0 .25rem; }
         .auth-card-header p { font-size: .75rem; color: #64748B; margin: 0; }
@@ -215,7 +226,7 @@
         <div class="auth-pattern"></div>
         <div class="auth-brand">
             <div class="auth-logo-circle">
-                <i class="bi bi-person-plus-fill auth-logo-icon"></i>
+                <img src="{{ asset('images/logo-pemkot.png') }}" alt="Logo Kota Cirebon">
             </div>
             <div class="auth-brand-title">Sistem Pendukung Keputusan</div>
             <div class="auth-brand-name"><span>Daftar</span> Akun</div>
@@ -248,7 +259,7 @@
             <div class="auth-card">
                 <div class="auth-card-header">
                     <div class="header-icon">
-                        <i class="bi bi-person-plus-fill"></i>
+                        <img src="{{ asset('images/logo-pemkot.png') }}" alt="Logo Kota Cirebon">
                     </div>
                     <h2>Buat Akun Baru</h2>
                     <p>Daftar untuk mengajukan bantuan sosial secara online</p>
