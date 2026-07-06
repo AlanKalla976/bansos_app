@@ -24,6 +24,53 @@
     border: none !important;
     vertical-align: middle !important;
 }
+
+/* ===== Pagination (senada tema navy, sama seperti Akun Masyarakat) ===== */
+.pagination {
+    margin: 0;
+    flex-wrap: wrap;
+    gap: .25rem;
+}
+.pagination .page-link {
+    border: 1px solid #E2E8F0;
+    color: #1E3A5F;
+    font-size: .8rem;
+    font-weight: 600;
+    padding: .4rem .75rem;
+    border-radius: 8px;
+    margin: 0;
+    min-width: 36px;
+    text-align: center;
+    box-shadow: none;
+}
+.pagination .page-link:hover {
+    background: #F1F5F9;
+    border-color: #CBD5E1;
+    color: #1E3A5F;
+}
+.pagination .page-item.active .page-link {
+    background: #1E3A5F;
+    border-color: #1E3A5F;
+    color: #fff;
+}
+.pagination .page-item.disabled .page-link {
+    background: #F8FAFC;
+    border-color: #F1F5F9;
+    color: #CBD5E1;
+}
+
+@media (max-width: 576px) {
+    .card-body-inner .border-top.d-flex {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: .75rem;
+    }
+    .card-body-inner .border-top.d-flex nav {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+    }
+}
 </style>
 @endpush
 
@@ -198,8 +245,15 @@
                 </tbody>
             </table>
         </div>
-        <div class="p-3">
-            {{ $pengajuans->onEachSide(1)->links() }}
+
+        @endif
+
+        @if($pengajuans->hasPages())
+        <div class="d-flex justify-content-between align-items-center px-4 py-3 border-top" style="font-size:.8rem;">
+            <span style="color:#64748B;">
+                Menampilkan {{ $pengajuans->firstItem() }}–{{ $pengajuans->lastItem() }} dari {{ $pengajuans->total() }} pengajuan
+            </span>
+            {{ $pengajuans->onEachSide(1)->links('pagination::bootstrap-5') }}
         </div>
         @endif
     </div>
