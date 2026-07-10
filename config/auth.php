@@ -72,7 +72,7 @@ return [
         ],
         'admins' => [
             'driver' => 'eloquent',
-            'model'  => App\Models\Admin::class,
+            'model'  => User::class, // satu tabel, dibedakan lewat kolom role
         ],
 
         // 'users' => [

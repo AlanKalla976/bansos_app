@@ -363,7 +363,7 @@
             {{-- 3b. Matriks Normalisasi --}}
             <h6 style="font-weight:700; color:#1E293B; margin-bottom:1rem;">
                 <span style="background:#64748B; color:#fff; font-size:.7rem; font-weight:700; padding:.2rem .6rem; border-radius:6px; margin-right:.5rem;">b</span>
-                Matriks Normalisasi &amp; Eigen Vector (Priority Vector)
+                Matriks Normalisasi &amp; Bobot Prioritas
             </h6>
             <div class="table-responsive mb-4">
                 <table class="table align-middle mb-0 tbl-navy" style="text-align:center;">
@@ -373,7 +373,7 @@
                             @foreach($ahp['kriterias'] as $k)
                                 <th>{{ $k['kode_kriteria'] }}</th>
                             @endforeach
-                            <th>Eigen Vector</th>
+                            <th>Bobot Prioritas</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -414,7 +414,7 @@
                         <tr>
                             <th style="text-align:left;">Kriteria</th>
                             <th>Weighted Sum Vector</th>
-                            <th>Eigen Vector (w)</th>
+                            <th>Bobot Prioritas (w)</th>
                             <th>Weighted Sum / Eigen (λ<sub>i</sub>)</th>
                         </tr>
                     </thead>

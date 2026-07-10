@@ -39,15 +39,22 @@ class AdminAuthController extends Controller
                 ->withErrors(['email' => 'Email atau password salah.']);
         }
 
+        // PENTING: selalu sebutkan guard secara eksplisit
         Auth::guard('admin')->login($admin, $request->boolean('remember'));
 
-        return redirect()->route('admin.dashboard');
+        return redirect()->route('admin.dashboard')
+                         ->with('success', 'Login berhasil! Selamat datang, ' . $admin->name . '.');
     }
 
     public function logout(Request $request)
     {
+        // PENTING: hanya logout guard admin, JANGAN panggil Auth::logout() tanpa guard
         Auth::guard('admin')->logout();
-        $request->session()->invalidate();
+
+        // JANGAN pakai $request->session()->invalidate() di sini kalau mau guard lain
+        // (misal web) tetap login, karena invalidate() akan menghapus SELURUH session,
+        // termasuk punya guard lain dalam satu browser/tab yang sama.
+        // Cukup regenerate token CSRF saja:
         $request->session()->regenerateToken();
 
         return redirect()->route('admin.login')

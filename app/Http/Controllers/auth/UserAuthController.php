@@ -41,9 +41,11 @@ class UserAuthController extends Controller
                 ->withErrors(['email' => 'Email atau password salah.']);
         }
 
+        // PENTING: selalu sebutkan guard secara eksplisit
         Auth::guard('web')->login($user, $request->boolean('remember'));
 
-        return redirect()->route('user.dashboard');
+        return redirect()->route('user.dashboard')
+                         ->with('success', 'Login berhasil! Selamat datang, ' . $user->name . '.');
     }
 
     // ── Register ───────────────────────────────────────────
@@ -59,21 +61,21 @@ class UserAuthController extends Controller
     public function register(Request $request)
     {
         $request->validate([
-            'nik'                  => 'required|digits:16|unique:users,nik',
-            'name'                 => 'required|string|max:100',
-            'email'                => 'required|email|unique:users,email',
-            'password'             => 'required|string|min:6|confirmed',
+            'nik'                => 'required|digits:16|unique:users,nik',
+            'name'               => 'required|string|max:100',
+            'email'              => 'required|email|unique:users,email',
+            'password'           => 'required|string|min:6|confirmed',
         ], [
-            'nik.required'         => 'NIK wajib diisi.',
-            'nik.digits'           => 'NIK harus tepat 16 digit.',
-            'nik.unique'           => 'NIK sudah terdaftar.',
-            'name.required'        => 'Nama lengkap wajib diisi.',
-            'email.required'       => 'Email wajib diisi.',
-            'email.email'          => 'Format email tidak valid.',
-            'email.unique'         => 'Email sudah terdaftar.',
-            'password.required'    => 'Password wajib diisi.',
-            'password.min'         => 'Password minimal 6 karakter.',
-            'password.confirmed'   => 'Konfirmasi password tidak cocok.',
+            'nik.required'       => 'NIK wajib diisi.',
+            'nik.digits'         => 'NIK harus tepat 16 digit.',
+            'nik.unique'         => 'NIK sudah terdaftar.',
+            'name.required'      => 'Nama lengkap wajib diisi.',
+            'email.required'     => 'Email wajib diisi.',
+            'email.email'        => 'Format email tidak valid.',
+            'email.unique'       => 'Email sudah terdaftar.',
+            'password.required'  => 'Password wajib diisi.',
+            'password.min'       => 'Password minimal 6 karakter.',
+            'password.confirmed' => 'Konfirmasi password tidak cocok.',
         ]);
 
         $user = User::create([
@@ -84,18 +86,19 @@ class UserAuthController extends Controller
             'role'     => 'masyarakat',
         ]);
 
-        Auth::guard('web')->login($user);
-
-        return redirect()->route('user.dashboard')
-                         ->with('success', 'Registrasi berhasil! Selamat datang, ' . $user->name . '.');
+        // Tidak auto-login, arahkan ke halaman login
+        return redirect()->route('user.login')
+                         ->with('success', 'Registrasi berhasil! Silakan login dengan akun Anda, ' . $user->name . '.');
     }
 
     // ── Logout ─────────────────────────────────────────────
 
     public function logout(Request $request)
     {
+        // PENTING: hanya logout guard web, JANGAN panggil Auth::logout() tanpa guard
         Auth::guard('web')->logout();
-        $request->session()->invalidate();
+
+        // Jangan invalidate() total kalau ingin guard admin tetap aman
         $request->session()->regenerateToken();
 
         return redirect()->route('user.login')

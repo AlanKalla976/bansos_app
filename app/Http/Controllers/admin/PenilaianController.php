@@ -49,6 +49,9 @@ class PenilaianController extends Controller
             'penilaian.*.nilai'          => 'required|numeric',
         ]);
 
+        // Cek apakah sebelumnya sudah ada penilaian untuk pengajuan ini (untuk pesan yang sesuai)
+        $isUpdate = Penilaian::where('pengajuan_id', $request->pengajuan_id)->exists();
+
         foreach ($request->penilaian as $item) {
             Penilaian::updateOrCreate(
                 [
@@ -62,8 +65,10 @@ class PenilaianController extends Controller
             );
         }
 
+        $pesan = $isUpdate ? 'Penilaian berhasil diperbarui.' : 'Penilaian berhasil disimpan.';
+
         return redirect()->route('admin.penilaian.index')
-            ->with('success', 'Penilaian berhasil disimpan.');
+            ->with('success', $pesan);
     }
 
     // ── Form edit penilaian ──

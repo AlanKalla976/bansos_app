@@ -28,14 +28,14 @@ Route::get('/', function () {
 */
 Route::prefix('user')->name('user.')->group(function () {
 
-    Route::middleware('guest')->group(function () {
+    Route::middleware('guest:web')->group(function () {
         Route::get('/login',    [UserAuthController::class, 'showLogin'])->name('login');
         Route::post('/login',   [UserAuthController::class, 'login'])->name('login.post');
         Route::get('/register', [UserAuthController::class, 'showRegister'])->name('register');
         Route::post('/register',[UserAuthController::class, 'register'])->name('register.post');
     });
 
-    Route::middleware('auth')->group(function () {
+    Route::middleware('auth:web')->group(function () {
         Route::post('/logout',   [UserAuthController::class, 'logout'])->name('logout');
         Route::get('/dashboard', [UserDashboardController::class, 'index'])->name('dashboard');
 
