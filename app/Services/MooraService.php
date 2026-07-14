@@ -47,7 +47,7 @@ class MooraService
                 $sumKuadrat += pow($matrix[$i][$j], 2);
             }
             $akarKuadrat[$j] = sqrt($sumKuadrat);
-        }
+        } 
 
         // --- 3. Matriks Normalisasi ---
         $normalized = [];
