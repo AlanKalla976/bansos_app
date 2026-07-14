@@ -22,11 +22,12 @@ class KriteriaController extends Controller
             ->get()
             ->keyBy(fn($p) => $p->kriteria_pertama_id . '_' . $p->kriteria_kedua_id);
 
-        // Buat daftar semua pasangan kombinasi (i < j) agar tidak duplikat
+        // Buat daftar SEMUA pasangan (n x n), termasuk kriteria dibanding dirinya sendiri
+        // Contoh untuk 5 kriteria: C1-C1, C1-C2, C1-C3, C1-C4, C1-C5, C2-C1, C2-C2, ...
         $pasangan = [];
         $list     = $kriterias->values();
         for ($i = 0; $i < $list->count(); $i++) {
-            for ($j = $i + 1; $j < $list->count(); $j++) {
+            for ($j = 0; $j < $list->count(); $j++) {
                 $pasangan[] = [
                     'pertama' => $list[$i],
                     'kedua'   => $list[$j],

@@ -16,6 +16,11 @@ class HasilAkhirController extends Controller
      * Hitung ulang status Layak/Tidak Layak berdasarkan kuota per jenis bantuan.
      * Ranking 1..kuota (per jenis bantuan) => Layak, sisanya => Tidak Layak.
      *
+     * Juga menghitung ranking_display, yaitu posisi urutan di dalam grup
+     * jenis bantuan (dimulai dari 1), supaya saat data difilter per jenis
+     * bantuan, ranking yang ditampilkan tidak mengikuti ranking global,
+     * melainkan mulai dari 1 lagi khusus untuk jenis bantuan tersebut.
+     *
      * @param \Illuminate\Support\Collection $items Koleksi HasilAkhir (dengan relasi pengajuan.bantuanSosial di-load)
      */
     private function attachStatusByKuota($items)
@@ -36,6 +41,11 @@ class HasilAkhirController extends Controller
             foreach ($sorted as $index => $h) {
                 // index dimulai dari 0, jadi posisi urutan = index + 1
                 $h->status_computed = ($index < $kuota) ? 'Layak' : 'Tidak Layak';
+
+                // Ranking yang ditampilkan = posisi urutan di dalam grup jenis
+                // bantuan ini, bukan ranking global, supaya saat difilter per
+                // jenis bantuan, ranking mulai dari 1.
+                $h->ranking_display = $index + 1;
             }
         }
 

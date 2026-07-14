@@ -220,14 +220,30 @@
                             </tr>
                         </thead>
                         <tbody>
+                            @php $lastKriteriaAId = null; @endphp
                             @foreach($pasangan as $idx => $p)
                             @php
+                                $isDiagonal = $p['pertama']->kriteria_id === $p['kedua']->kriteria_id;
                                 $key   = $p['pertama']->kriteria_id . '_' . $p['kedua']->kriteria_id;
-                                $nilai = $perbandingan[$key]->nilai_perbandingan ?? 1;
+                                $nilai = $isDiagonal ? 1 : ($perbandingan[$key]->nilai_perbandingan ?? 1);
                             @endphp
+
+                            @if($lastKriteriaAId !== $p['pertama']->kriteria_id)
+                                @php $lastKriteriaAId = $p['pertama']->kriteria_id; @endphp
+                                <tr>
+                                    <td colspan="4" style="background:#F1F5F9 !important; font-weight:700; color:#1E3A5F; font-size:.8rem; padding:.6rem 1rem !important;">
+                                        <i class="bi bi-arrow-down-right me-1"></i>
+                                        Perbandingan {{ $p['pertama']->kode_kriteria }} — {{ $p['pertama']->nama }}
+                                    </td>
+                                </tr>
+                            @endif
+
                             <tr>
                                 <input type="hidden" name="perbandingan[{{ $idx }}][id_a]" value="{{ $p['pertama']->kriteria_id }}">
                                 <input type="hidden" name="perbandingan[{{ $idx }}][id_b]" value="{{ $p['kedua']->kriteria_id }}">
+                                @if($isDiagonal)
+                                    <input type="hidden" name="perbandingan[{{ $idx }}][nilai]" value="1">
+                                @endif
                                 <td style="font-weight:600; color:#1E293B; font-size:.83rem;">
                                     <span style="background:#EFF6FF; color:#1E3A5F; font-size:.7rem; font-weight:700; padding:.2rem .6rem; border-radius:20px; display:inline-block; margin-right:.4rem;">{{ $p['pertama']->kode_kriteria }}</span>
                                     {{ $p['pertama']->nama }}
@@ -238,6 +254,10 @@
                                     {{ $p['kedua']->nama }}
                                 </td>
                                 <td>
+                                    @if($isDiagonal)
+                                        <input type="text" class="form-control form-control-sm rounded-3 bg-light text-center"
+                                               value="1 – Sama penting (otomatis)" disabled readonly style="font-size:.8rem;">
+                                    @else
                                     <select name="perbandingan[{{ $idx }}][nilai]" class="form-select form-select-sm rounded-3" style="font-size:.8rem;">
                                         @foreach([
                                             '9'        => '9 – A mutlak lebih penting dari B',
@@ -263,6 +283,7 @@
                                         </option>
                                         @endforeach
                                     </select>
+                                    @endif
                                 </td>
                             </tr>
                             @endforeach

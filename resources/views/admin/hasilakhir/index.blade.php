@@ -155,8 +155,8 @@
                 @endphp
                 <tr>
                     <td>
-                        <span class="rank-badge {{ $h->ranking <= 3 ? 'rank-'.$h->ranking : 'rank-n' }}">
-                            {{ $h->ranking }}
+                        <span class="rank-badge {{ $h->ranking_display <= 3 ? 'rank-'.$h->ranking_display : 'rank-n' }}">
+                            {{ $h->ranking_display }}
                         </span>
                     </td>
                     <td style="font-weight:600; color:#1E293B; font-size:.83rem;">
