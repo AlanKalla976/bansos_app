@@ -13,19 +13,38 @@ use Barryvdh\DomPDF\Facade\Pdf;
 class HasilAkhirController extends Controller
 {
     /**
-     * Hitung ulang status Layak/Tidak Layak berdasarkan kuota per jenis bantuan.
-     * Ranking 1..kuota (per jenis bantuan) => Layak, sisanya => Tidak Layak.
+     * Hitung ulang status Layak/Tidak Layak berdasarkan kuota per jenis bantuan,
+     * dan hitung dua jenis ranking sekaligus:
      *
-     * Juga menghitung ranking_display, yaitu posisi urutan di dalam grup
-     * jenis bantuan (dimulai dari 1), supaya saat data difilter per jenis
-     * bantuan, ranking yang ditampilkan tidak mengikuti ranking global,
-     * melainkan mulai dari 1 lagi khusus untuk jenis bantuan tersebut.
+     * - global_ranking     : ranking gabungan semua jenis bantuan (urut nilai_yi
+     *                        tertinggi -> terendah), dihitung dari SELURUH data,
+     *                        tidak bergantung kolom 'ranking' di DB supaya tidak
+     *                        bolong/loncat kalau ada data yang dihapus.
+     * - ranking_in_bantuan : ranking di dalam masing-masing jenis bantuan saja,
+     *                        selalu mulai dari 1 lagi untuk tiap jenis bantuan.
      *
-     * @param \Illuminate\Support\Collection $items Koleksi HasilAkhir (dengan relasi pengajuan.bantuanSosial di-load)
+     * status_computed (Layak/Tidak Layak) ditentukan dari ranking_in_bantuan
+     * dibandingkan kuota jenis bantuan tsb.
+     *
+     * PENTING: fungsi ini harus dipanggil terhadap koleksi LENGKAP (semua data,
+     * belum difilter jenis_bantuan/status/search) supaya global_ranking dan
+     * kuota per jenis bantuan dihitung dengan benar. Filter diterapkan SETELAH
+     * fungsi ini selesai.
+     *
+     * @param \Illuminate\Support\Collection $items Koleksi HasilAkhir LENGKAP
+     *        (relasi pengajuan.bantuanSosial harus sudah di-load)
      */
     private function attachStatusByKuota($items)
     {
-        // Kelompokkan per jenis bantuan sosial
+        // Urutkan seluruh data berdasarkan skor MOORA (nilai_yi) tertinggi -> terendah
+        // untuk mendapatkan ranking global yang selalu rapi (1,2,3,... tanpa lompat).
+        $items = $items->sortByDesc('nilai_yi')->values();
+
+        foreach ($items as $index => $h) {
+            $h->global_ranking = $index + 1;
+        }
+
+        // Kelompokkan per jenis bantuan sosial untuk hitung ranking & status per grup
         $grouped = $items->groupBy(function ($h) {
             return $h->pengajuan->bantuanSosial->id ?? 'unknown';
         });
@@ -33,19 +52,13 @@ class HasilAkhirController extends Controller
         foreach ($grouped as $bantuanId => $group) {
             $kuota = optional($group->first()->pengajuan->bantuanSosial)->kuota ?? 0;
 
-            // Urutkan berdasarkan ranking di dalam grup jenis bantuan ini
-            $sorted = $group->sortBy(function ($h) {
-                return $h->ranking;
-            })->values();
+            // Urutkan berdasarkan nilai_yi tertinggi -> terendah di dalam grup ini,
+            // bukan berdasarkan kolom 'ranking' yang tersimpan di DB.
+            $sorted = $group->sortByDesc('nilai_yi')->values();
 
             foreach ($sorted as $index => $h) {
-                // index dimulai dari 0, jadi posisi urutan = index + 1
-                $h->status_computed = ($index < $kuota) ? 'Layak' : 'Tidak Layak';
-
-                // Ranking yang ditampilkan = posisi urutan di dalam grup jenis
-                // bantuan ini, bukan ranking global, supaya saat difilter per
-                // jenis bantuan, ranking mulai dari 1.
-                $h->ranking_display = $index + 1;
+                $h->ranking_in_bantuan = $index + 1; // ranking 1..N khusus jenis bantuan ini
+                $h->status_computed    = ($index < $kuota) ? 'Layak' : 'Tidak Layak';
             }
         }
 
@@ -54,10 +67,10 @@ class HasilAkhirController extends Controller
 
     public function index(Request $request)
     {
-        // Ambil semua data dulu (tanpa pagination) supaya status per-kuota bisa dihitung
-        // berdasarkan ranking di dalam masing-masing jenis bantuan, baru dipaginate manual.
-        $baseQuery = HasilAkhir::with(['pengajuan.bantuanSosial'])
-            ->orderBy('ranking');
+        // Ambil SEMUA data dulu (tanpa filter jenis_bantuan/status, tanpa pagination)
+        // supaya global_ranking, ranking_in_bantuan, dan status per-kuota dihitung
+        // dari populasi data yang lengkap dan benar.
+        $baseQuery = HasilAkhir::with(['pengajuan.bantuanSosial']);
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -67,20 +80,34 @@ class HasilAkhirController extends Controller
             });
         }
 
-        if ($request->filled('jenis_bantuan')) {
-            $baseQuery->whereHas('pengajuan.bantuanSosial', fn($q) =>
-                $q->where('id', $request->jenis_bantuan)
-            );
-        }
-
-        $allItems = $baseQuery->get();
+        // Ambil semua data (sudah kena filter search jika ada), lalu urutkan
+        // berdasarkan nilai_yi (bukan kolom ranking) supaya tidak bolong.
+        $allItems = $baseQuery->get()->sortByDesc('nilai_yi')->values();
         $allItems = $this->attachStatusByKuota($allItems);
+
+        $jenisBantuanId = $request->input('jenis_bantuan');
+
+        // Filter jenis bantuan diterapkan SETELAH ranking dihitung, supaya
+        // ranking_in_bantuan tetap konsisten (mulai dari 1 untuk jenis itu).
+        $filtered = $allItems;
+        if ($jenisBantuanId) {
+            $filtered = $filtered->filter(function ($h) use ($jenisBantuanId) {
+                return ($h->pengajuan->bantuanSosial->id ?? null) == $jenisBantuanId;
+            })->values();
+        }
 
         // Filter status (Layak/Tidak Layak) diterapkan setelah status dihitung dari kuota
         if ($request->filled('status')) {
-            $allItems = $allItems->filter(function ($h) use ($request) {
+            $filtered = $filtered->filter(function ($h) use ($request) {
                 return $h->status_computed === $request->status;
             })->values();
+        }
+
+        // Tentukan ranking yang ditampilkan di tabel:
+        // - Tidak difilter jenis bantuan -> pakai global_ranking
+        // - Difilter jenis bantuan tertentu -> pakai ranking_in_bantuan (mulai dari 1 lagi)
+        foreach ($filtered as $h) {
+            $h->ranking_display = $jenisBantuanId ? $h->ranking_in_bantuan : $h->global_ranking;
         }
 
         // Pagination manual
@@ -88,11 +115,11 @@ class HasilAkhirController extends Controller
         $page    = $request->get('page', 1);
         $offset  = ($page - 1) * $perPage;
 
-        $itemsForPage = $allItems->slice($offset, $perPage)->values();
+        $itemsForPage = $filtered->slice($offset, $perPage)->values();
 
         $hasilAkhirs = new \Illuminate\Pagination\LengthAwarePaginator(
             $itemsForPage,
-            $allItems->count(),
+            $filtered->count(),
             $perPage,
             $page,
             ['path' => $request->url(), 'query' => $request->query()]
@@ -101,8 +128,9 @@ class HasilAkhirController extends Controller
         $jenisBantuanList = BantuanSosial::pluck('nama_bantuan', 'id');
 
         // Statistik total berdasarkan status hasil perhitungan kuota (bukan kolom status di DB)
+        // Dihitung dari SELURUH data (tanpa filter apapun) supaya statistik tetap global.
         $allForStats = $this->attachStatusByKuota(
-            HasilAkhir::with(['pengajuan.bantuanSosial'])->orderBy('ranking')->get()
+            HasilAkhir::with(['pengajuan.bantuanSosial'])->get()
         );
 
         $total           = $allForStats->count();
@@ -134,8 +162,8 @@ class HasilAkhirController extends Controller
 
     public function exportPdf(Request $request)
     {
-        $query = HasilAkhir::with(['pengajuan.bantuanSosial'])
-            ->orderBy('ranking');
+        // Ambil semua data (dengan filter search saja) untuk hitung ranking secara utuh
+        $query = HasilAkhir::with(['pengajuan.bantuanSosial']);
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -145,19 +173,26 @@ class HasilAkhirController extends Controller
             );
         }
 
-        if ($request->filled('jenis_bantuan')) {
-            $query->whereHas('pengajuan.bantuanSosial', fn($q) =>
-                $q->where('id', $request->jenis_bantuan)
-            );
-        }
+        $allItems = $query->get()->sortByDesc('nilai_yi')->values();
+        $allItems = $this->attachStatusByKuota($allItems);
 
-        $hasilAkhirs = $query->get();
-        $hasilAkhirs = $this->attachStatusByKuota($hasilAkhirs);
+        $jenisBantuanId = $request->input('jenis_bantuan');
+
+        $hasilAkhirs = $allItems;
+        if ($jenisBantuanId) {
+            $hasilAkhirs = $hasilAkhirs->filter(function ($h) use ($jenisBantuanId) {
+                return ($h->pengajuan->bantuanSosial->id ?? null) == $jenisBantuanId;
+            })->values();
+        }
 
         if ($request->filled('status')) {
             $hasilAkhirs = $hasilAkhirs->filter(function ($h) use ($request) {
                 return $h->status_computed === $request->status;
             })->values();
+        }
+
+        foreach ($hasilAkhirs as $h) {
+            $h->ranking_display = $jenisBantuanId ? $h->ranking_in_bantuan : $h->global_ranking;
         }
 
         $namaJenis = 'Semua';

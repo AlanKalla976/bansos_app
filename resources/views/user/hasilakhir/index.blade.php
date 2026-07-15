@@ -159,10 +159,11 @@
     @elseif($status === 'sudah_dinilai')
 
     @php
-        $isLayakSendiri = $hasilSendiri->status_computed === 'Layak';
+        $isLayakSendiri = $hasilSendiri && $hasilSendiri->status_computed === 'Layak';
     @endphp
 
     {{-- Card hasil milik user sendiri --}}
+    @if($hasilSendiri)
     <div class="card border-0 rounded-4 mb-4 text-white"
          style="background: linear-gradient(135deg, #1e3a5f, #2d6a4f);">
         <div class="card-body p-4">
@@ -179,7 +180,11 @@
                 </div>
                 <div class="col-auto text-center">
                     <p class="small opacity-75 mb-0">Ranking</p>
-                    <h2 class="fw-bold mb-0">#{{ $hasilSendiri->ranking }}</h2>
+                    <h2 class="fw-bold mb-0">#{{ $hasilSendiri->global_ranking }}</h2>
+                </div>
+                <div class="col-auto text-center">
+                    <p class="small opacity-75 mb-0">Ranking di Jenis Bantuan</p>
+                    <h2 class="fw-bold mb-0">#{{ $hasilSendiri->ranking_in_bantuan }}</h2>
                 </div>
                 <div class="col-auto text-center">
                     <p class="small opacity-75 mb-0">Total Skor</p>
@@ -201,19 +206,30 @@
             </div>
         </div>
     </div>
+    @endif
 
-    {{-- Search --}}
+    {{-- Search & Filter --}}
     <div class="filter-bar mb-3">
-        <form method="GET" action="{{ route('user.hasilakhir.index') }}" class="d-flex gap-2">
+        <form method="GET" action="{{ route('user.hasilakhir.index') }}" class="d-flex gap-2 flex-wrap">
             <input type="text" name="search"
                    class="form-control form-control-sm"
                    placeholder="Cari nama..."
                    value="{{ request('search') }}"
                    style="max-width: 320px;">
+
+            <select name="jenis_bantuan" class="form-select form-select-sm" style="max-width: 240px;">
+                <option value="">Semua Jenis Bantuan</option>
+                @foreach($bantuanList as $b)
+                    <option value="{{ $b->id }}" {{ (string) $jenisBantuanId === (string) $b->id ? 'selected' : '' }}>
+                        {{ $b->nama_bantuan }}
+                    </option>
+                @endforeach
+            </select>
+
             <button type="submit" class="btn btn-primary btn-sm">
-                <i class="bi bi-search"></i> Cari
+                <i class="bi bi-search"></i> Terapkan
             </button>
-            @if(request('search'))
+            @if(request('search') || request('jenis_bantuan'))
                 <a href="{{ route('user.hasilakhir.index') }}" class="btn btn-sm" style="background:#F1F5F9; color:var(--text-muted); border:1px solid var(--border);">
                     Reset
                 </a>
@@ -230,10 +246,17 @@
                 </div>
                 Tabel Ranking Semua Peserta
             </h6>
-            @if(request('search'))
+
+            @if($jenisBantuanId || request('search'))
                 <small class="text-muted">
-                    Pencarian: <strong>"{{ request('search') }}"</strong>
-                    — {{ $hasilAkhirs->count() }} data
+                    @if($jenisBantuanId)
+                        Jenis Bantuan: <strong>{{ optional($bantuanList->firstWhere('id', $jenisBantuanId))->nama_bantuan ?? '-' }}</strong>
+                        <span class="text-primary">(ranking direset mulai dari 1)</span>
+                    @endif
+                    @if(request('search'))
+                        &nbsp;— Pencarian: <strong>"{{ request('search') }}"</strong>
+                    @endif
+                    &nbsp;— {{ $hasilAkhirs->count() }} data
                 </small>
             @else
                 <small class="text-muted">Total {{ $hasilAkhirs->count() }} peserta</small>
@@ -258,7 +281,7 @@
                     @endphp
                     <tr style="{{ $isSendiri ? 'background: rgba(82, 183, 136, 0.08); font-weight: 600;' : '' }}">
                         <td class="ps-4">
-                            <span class="rank-badge {{ $h->ranking <= 3 ? 'rank-'.$h->ranking : 'rank-n' }}">{{ $h->ranking }}</span>
+                            <span class="rank-badge {{ $h->display_ranking <= 3 ? 'rank-'.$h->display_ranking : 'rank-n' }}">{{ $h->display_ranking }}</span>
                         </td>
                         <td style="font-weight:600; color:#1E293B; font-size:.83rem;">
                             {{ $h->pengajuan->nama ?? '-' }}
@@ -288,8 +311,8 @@
                             <div class="empty-state">
                                 <i class="bi bi-inbox"></i>
                                 <p>
-                                    @if(request('search'))
-                                        Tidak ditemukan hasil untuk <strong>"{{ request('search') }}"</strong>.
+                                    @if(request('search') || $jenisBantuanId)
+                                        Tidak ditemukan hasil untuk filter yang dipilih.
                                     @else
                                         Belum ada hasil penilaian.
                                     @endif

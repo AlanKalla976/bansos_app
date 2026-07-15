@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Models\BantuanSosial;
 use App\Models\HasilAkhir;
 use App\Models\Pengajuan;
 use Illuminate\Http\Request;
@@ -11,10 +12,13 @@ use Illuminate\Support\Facades\Auth;
 class HasilAkhirController extends Controller
 {
     /**
-     * Hitung status Layak/Tidak Layak berdasarkan kuota per jenis bantuan.
-     * Ranking 1..kuota (di dalam masing-masing jenis bantuan) => Layak.
+     * Hitung status Layak/Tidak Layak berdasarkan kuota per jenis bantuan,
+     * sekaligus menghitung ranking KHUSUS di dalam masing-masing jenis bantuan
+     * (selalu mulai dari 1, tidak bergantung pada kolom 'ranking' yang tersimpan
+     * di DB agar tidak bolong/loncat kalau ada data yang dihapus).
      *
-     * @param \Illuminate\Support\Collection $items Koleksi HasilAkhir (relasi pengajuan.bantuanSosial harus sudah di-load)
+     * @param \Illuminate\Support\Collection $items Koleksi HasilAkhir
+     *        (relasi pengajuan.bantuanSosial harus sudah di-load)
      */
     private function attachStatusByKuota($items)
     {
@@ -25,12 +29,13 @@ class HasilAkhirController extends Controller
         foreach ($grouped as $bantuanId => $group) {
             $kuota = optional($group->first()->pengajuan->bantuanSosial)->kuota ?? 0;
 
-            $sorted = $group->sortBy(function ($h) {
-                return $h->ranking;
-            })->values();
+            // Urutkan berdasarkan skor MOORA (nilai_yi) tertinggi -> terendah,
+            // bukan berdasarkan kolom 'ranking' yang tersimpan di DB.
+            $sorted = $group->sortByDesc('nilai_yi')->values();
 
             foreach ($sorted as $index => $h) {
-                $h->status_computed = ($index < $kuota) ? 'Layak' : 'Tidak Layak';
+                $h->ranking_in_bantuan = $index + 1; // ranking 1..N khusus jenis bantuan ini
+                $h->status_computed    = ($index < $kuota) ? 'Layak' : 'Tidak Layak';
             }
         }
 
@@ -47,44 +52,53 @@ class HasilAkhirController extends Controller
         // Jika belum mengajukan sama sekali
         if (!$pengajuanUser) {
             return view('user.hasilakhir.index', [
-                'status'      => 'belum_mengajukan',
-                'hasilAkhirs' => collect(),
-                'hasilSendiri'=> null,
+                'status'         => 'belum_mengajukan',
+                'hasilAkhirs'    => collect(),
+                'hasilSendiri'   => null,
+                'bantuanList'    => collect(),
+                'jenisBantuanId' => null,
             ]);
         }
 
-        // Cek apakah pengajuan user sudah ada di hasil_akhirs (sudah dihitung MOORA)
-        $hasilSendiri = HasilAkhir::with(['pengajuan.bantuanSosial'])
-            ->whereHas('pengajuan', function ($q) use ($user) {
-                $q->where('user_id', $user->users_id);
-            })
-            ->orderBy('ranking')
-            ->first();
+        // Cek apakah pengajuan user sudah dihitung MOORA
+        $sudahDinilai = HasilAkhir::whereHas('pengajuan', function ($q) use ($user) {
+            $q->where('user_id', $user->users_id);
+        })->exists();
 
-        // Sudah mengajukan tapi belum dihitung MOORA
-        if (!$hasilSendiri) {
+        if (!$sudahDinilai) {
             return view('user.hasilakhir.index', [
-                'status'       => 'belum_dinilai',
-                'pengajuanUser'=> $pengajuanUser,
-                'hasilAkhirs'  => collect(),
-                'hasilSendiri' => null,
+                'status'         => 'belum_dinilai',
+                'pengajuanUser'  => $pengajuanUser,
+                'hasilAkhirs'    => collect(),
+                'hasilSendiri'   => null,
+                'bantuanList'    => collect(),
+                'jenisBantuanId' => null,
             ]);
         }
 
-        // Sudah mengajukan dan sudah ada hasil MOORA
-        // Ambil SEMUA hasil (tanpa filter search dulu) supaya status per-kuota
-        // dihitung berdasarkan ranking di dalam masing-masing jenis bantuan secara utuh,
-        // baru difilter oleh pencarian setelahnya.
+        // Ambil SEMUA hasil, urutkan berdasarkan skor (nilai_yi) tertinggi -> terendah.
+        // Tidak pakai orderBy('ranking') lagi supaya kalau ada data yang dihapus,
+        // ranking otomatis urut kembali dari 1 tanpa loncat.
         $allHasilAkhirs = HasilAkhir::with(['pengajuan.bantuanSosial'])
-            ->orderBy('ranking')
-            ->get();
+            ->get()
+            ->sortByDesc('nilai_yi')
+            ->values();
 
+        // Ranking global (tampilan biasa, semua jenis bantuan digabung jadi satu urutan)
+        foreach ($allHasilAkhirs as $index => $h) {
+            $h->global_ranking = $index + 1;
+        }
+
+        // Ranking + status Layak/Tidak Layak per jenis bantuan (berdasarkan kuota)
         $allHasilAkhirs = $this->attachStatusByKuota($allHasilAkhirs);
 
-        // Samakan status_computed milik hasilSendiri dengan yang sudah dihitung di atas
-        $hasilSendiri = $allHasilAkhirs->firstWhere('hasil_id', $hasilSendiri->hasil_id) ?? $hasilSendiri;
+        // Data hasil milik user sendiri (dihitung dari data lengkap, sebelum difilter search/jenis bantuan)
+        $hasilSendiri = $allHasilAkhirs->first(function ($h) use ($user) {
+            return ($h->pengajuan->user_id ?? null) == $user->users_id;
+        });
 
-        $hasilAkhirs = $allHasilAkhirs;
+        $jenisBantuanId = $request->input('jenis_bantuan');
+        $hasilAkhirs    = $allHasilAkhirs;
 
         if ($request->filled('search')) {
             $search = strtolower($request->search);
@@ -95,11 +109,28 @@ class HasilAkhirController extends Controller
             })->values();
         }
 
+        if ($jenisBantuanId) {
+            $hasilAkhirs = $hasilAkhirs->filter(function ($h) use ($jenisBantuanId) {
+                return ($h->pengajuan->bantuanSosial->id ?? null) == $jenisBantuanId;
+            })->values();
+        }
+
+        // Ranking yang ditampilkan di tabel:
+        // - Tampilan biasa (tidak difilter jenis bantuan)  -> pakai ranking global
+        // - Difilter jenis bantuan tertentu                -> pakai ranking khusus jenis itu (mulai dari 1 lagi)
+        foreach ($hasilAkhirs as $h) {
+            $h->display_ranking = $jenisBantuanId ? $h->ranking_in_bantuan : $h->global_ranking;
+        }
+
+        $bantuanList = BantuanSosial::orderBy('nama_bantuan')->get();
+
         return view('user.hasilakhir.index', [
-            'status'       => 'sudah_dinilai',
-            'hasilAkhirs'  => $hasilAkhirs,
-            'hasilSendiri' => $hasilSendiri,
-            'pengajuanUser'=> $pengajuanUser,
+            'status'         => 'sudah_dinilai',
+            'hasilAkhirs'    => $hasilAkhirs,
+            'hasilSendiri'   => $hasilSendiri,
+            'pengajuanUser'  => $pengajuanUser,
+            'bantuanList'    => $bantuanList,
+            'jenisBantuanId' => $jenisBantuanId,
         ]);
     }
 }
