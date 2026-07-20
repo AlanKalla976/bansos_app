@@ -233,6 +233,16 @@
             font-size: .72rem;
             color: #94A3B8;
         }
+        .login-mode-hint {
+            font-size: .7rem;
+            color: #94A3B8;
+            margin-top: .35rem;
+            display: flex;
+            align-items: center;
+            gap: .3rem;
+        }
+        .login-mode-hint.active-nik { color: var(--secondary); font-weight: 600; }
+        .login-mode-hint.active-email { color: var(--primary); font-weight: 600; }
         @media (max-width: 768px) {
             .auth-left { display: none; }
             .auth-right { width: 100%; padding: 1.5rem 1rem; }
@@ -298,22 +308,27 @@
                     @csrf
 
                     <div class="mb-3">
-                        <label for="email" class="form-label">
-                            <i class="bi bi-envelope me-1" style="color:var(--accent);"></i>Email
+                        <label for="login" class="form-label">
+                            <i class="bi bi-person-vcard me-1" style="color:var(--accent);"></i>Email atau NIK
                         </label>
                         <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-                            <input type="email"
-                                   id="email"
-                                   name="email"
-                                   class="form-control @error('email') is-invalid @enderror"
-                                   value="{{ old('email') }}"
-                                   placeholder="email@contoh.com"
-                                   autocomplete="email"
+                            <span class="input-group-text"><i class="bi bi-person" id="loginIcon"></i></span>
+                            <input type="text"
+                                   id="login"
+                                   name="login"
+                                   class="form-control @error('login') is-invalid @enderror"
+                                   value="{{ old('login') }}"
+                                   placeholder="email@contoh.com atau 16 digit NIK"
+                                   autocomplete="username"
+                                   inputmode="text"
                                    required>
-                            @error('email')
+                            @error('login')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
+                        </div>
+                        <div class="login-mode-hint" id="loginModeHint">
+                            <i class="bi bi-info-circle"></i>
+                            <span>Bisa login pakai email atau NIK (16 digit)</span>
                         </div>
                     </div>
 
@@ -380,6 +395,36 @@
         } else {
             pwd.type = 'password';
             icon.classList.replace('bi-eye-slash', 'bi-eye');
+        }
+    });
+
+    // Deteksi live: kalau user mengetik 16 digit angka -> mode NIK,
+    // kalau mengandung karakter non-digit -> mode Email. Hanya untuk
+    // memberi feedback visual, validasi sesungguhnya tetap di server.
+    const loginInput = document.getElementById('login');
+    const loginIcon  = document.getElementById('loginIcon');
+    const loginHint  = document.getElementById('loginModeHint');
+
+    loginInput.addEventListener('input', function () {
+        const val = loginInput.value.trim();
+        const isAllDigits = /^\d+$/.test(val);
+
+        loginHint.classList.remove('active-nik', 'active-email');
+
+        if (val.length === 0) {
+            loginIcon.className = 'bi bi-person';
+            loginHint.innerHTML = '<i class="bi bi-info-circle"></i><span>Bisa login pakai email atau NIK (16 digit)</span>';
+        } else if (isAllDigits) {
+            loginIcon.className = 'bi bi-person-vcard';
+            loginHint.classList.add('active-nik');
+            const sisa = 16 - val.length;
+            loginHint.innerHTML = sisa > 0
+                ? `<i class="bi bi-person-vcard"></i><span>Mode NIK — ${sisa} digit lagi</span>`
+                : `<i class="bi bi-check-circle"></i><span>Mode NIK — siap login</span>`;
+        } else {
+            loginIcon.className = 'bi bi-envelope';
+            loginHint.classList.add('active-email');
+            loginHint.innerHTML = '<i class="bi bi-envelope"></i><span>Mode Email</span>';
         }
     });
 </script>

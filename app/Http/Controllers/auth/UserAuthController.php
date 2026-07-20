@@ -23,22 +23,33 @@ class UserAuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'email'    => 'required|email',
+            'login'    => 'required|string',
             'password' => 'required|string',
         ], [
-            'email.required'    => 'Email wajib diisi.',
-            'email.email'       => 'Format email tidak valid.',
+            'login.required'    => 'Email atau NIK wajib diisi.',
             'password.required' => 'Password wajib diisi.',
         ]);
 
-        $user = User::where('email', $request->email)
-                    ->where('role', 'masyarakat')
-                    ->first();
+        $loginInput = trim($request->login);
+
+        // Deteksi otomatis: kalau inputnya berupa 16 digit angka, anggap sebagai NIK.
+        // Selain itu (mengandung huruf/simbol seperti '@'), anggap sebagai email.
+        $isNik = ctype_digit($loginInput) && strlen($loginInput) === 16;
+
+        $query = User::where('role', 'masyarakat');
+
+        if ($isNik) {
+            $query->where('nik', $loginInput);
+        } else {
+            $query->where('email', $loginInput);
+        }
+
+        $user = $query->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             return back()
-                ->withInput($request->only('email'))
-                ->withErrors(['email' => 'Email atau password salah.']);
+                ->withInput($request->only('login'))
+                ->withErrors(['login' => 'Email/NIK atau password salah.']);
         }
 
         // PENTING: selalu sebutkan guard secara eksplisit
