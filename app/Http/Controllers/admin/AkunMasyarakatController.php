@@ -11,19 +11,19 @@ use Illuminate\Validation\Rule;
 class AkunMasyarakatController extends Controller
 {
     /**
-     * Tampilkan daftar akun.
+     * Tampilkan daftar akun (hanya role masyarakat).
      */
     public function index(Request $request)
     {
         $search = $request->get('search');
 
         $akun = AkunMasyarakat::query()
+            ->where('role', 'masyarakat') // admin tidak ikut ditampilkan di menu ini
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
                         ->orWhere('email', 'like', "%{$search}%")
-                        ->orWhere('nik', 'like', "%{$search}%")
-                        ->orWhere('role', 'like', "%{$search}%");
+                        ->orWhere('nik', 'like', "%{$search}%");
                 });
             })
             ->orderBy('users_id', 'asc')

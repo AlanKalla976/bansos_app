@@ -97,7 +97,6 @@
                     <th>NIK</th>
                     <th>Nama</th>
                     <th>Email</th>
-                    <th>Role</th>
                     <th>Dibuat</th>
                     <th style="text-align:center; width:130px;">Aksi</th>
                 </tr>
@@ -122,15 +121,6 @@
                         </div>
                     </td>
                     <td style="color:#64748B; font-size:.82rem;">{{ $item->email }}</td>
-                    <td>
-                        @if($item->role == 'admin')
-                            <span style="background:#FEE2E2; color:#991B1B; font-size:.7rem; font-weight:700; padding:.25rem .75rem; border-radius:20px; display:inline-block;">Admin</span>
-                        @elseif($item->role == 'masyarakat')
-                            <span style="background:#D1FAE5; color:#065F46; font-size:.7rem; font-weight:700; padding:.25rem .75rem; border-radius:20px; display:inline-block;">Masyarakat</span>
-                        @else
-                            <span style="background:#F1F5F9; color:#64748B; font-size:.7rem; font-weight:700; padding:.25rem .75rem; border-radius:20px; display:inline-block;">{{ ucfirst($item->role) }}</span>
-                        @endif
-                    </td>
                     <td style="color:#64748B; font-size:.8rem;">
                         <i class="bi bi-calendar3 me-1"></i>{{ $item->created_at->format('d M Y') }}
                     </td>
@@ -158,7 +148,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="7">
+                    <td colspan="6">
                         <div class="empty-state" style="padding:3rem;">
                             <i class="bi bi-people" style="font-size:2rem;"></i>
                             <p>{{ $search ? 'Tidak ada hasil untuk "' . $search . '"' : 'Belum ada akun masyarakat.' }}</p>
