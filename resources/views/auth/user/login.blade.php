@@ -369,13 +369,6 @@
                    onmouseout="this.style.background='transparent'; this.style.color='var(--secondary)';">
                     <i class="bi bi-person-plus me-1"></i>Daftar Sekarang
                 </a>
-
-                <div class="divider-text mt-3"><span>Login sebagai</span></div>
-                <div class="text-center">
-                    <a href="{{ route('admin.login') }}" style="font-size:.75rem; color:#64748B; text-decoration:none; font-weight:500;">
-                        <i class="bi bi-shield-lock me-1"></i>Administrator
-                    </a>
-                </div>
             </div>
 
             <div class="text-center mt-3" style="font-size:.72rem; color:#94A3B8;">
