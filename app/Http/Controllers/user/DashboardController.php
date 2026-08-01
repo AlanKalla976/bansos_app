@@ -22,7 +22,24 @@ class DashboardController extends Controller
         $riwayatPengajuan = Pengajuan::where('user_id', $user->users_id)
             ->with('bantuanSosial')
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->get()
+            ->map(function ($p) {
+                $dokumenWajib = [
+                    'KTP'           => $p->foto_ktp,
+                    'KK'            => $p->foto_kk,
+                    'SKTM'          => $p->foto_sktm,
+                    'Kondisi Rumah' => $p->foto_rumah,
+                ];
+
+                $terisi = collect($dokumenWajib)->filter(fn($d) => !empty($d))->count();
+                $total  = count($dokumenWajib);
+
+                $p->dok_lengkap = $terisi === $total;
+                $p->dok_terisi  = $terisi;
+                $p->dok_total   = $total;
+
+                return $p;
+            });
 
         return view('user.dashboard.index', compact(
             'user',

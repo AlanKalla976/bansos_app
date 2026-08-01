@@ -140,8 +140,16 @@
                                 {{ $st }}
                             </span>
                         </td>
-                        <td style="color:#64748B; font-size:.8rem;">
-                            {{ $p->kelengkapan_dokumen ?? '-' }}
+                        <td>
+                            @if($p->dok_lengkap)
+                                <span style="background:#D1FAE5; color:#065F46; font-size:.7rem; font-weight:700; padding:.28rem .75rem; border-radius:20px; display:inline-block;">
+                                    <i class="bi bi-check-circle-fill me-1"></i>Lengkap
+                                </span>
+                            @else
+                                <span style="background:#FEE2E2; color:#991B1B; font-size:.7rem; font-weight:700; padding:.28rem .75rem; border-radius:20px; display:inline-block;">
+                                    <i class="bi bi-exclamation-circle-fill me-1"></i>Belum Lengkap ({{ $p->dok_terisi }}/{{ $p->dok_total }})
+                                </span>
+                            @endif
                         </td>
                     </tr>
                     @endforeach
