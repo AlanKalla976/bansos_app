@@ -85,7 +85,7 @@
                 <div class="welcome-badge">
                     <i class="bi bi-circle-fill" style="font-size:.45rem;"></i>Sistem Aktif
                 </div>
-                <h2 class="welcome-title">Selamat datang, {{ $admin->full_name }}! 👋</h2>
+                <h2 class="welcome-title">Selamat datang, {{ $admin->full_name }} ({{ ucfirst($admin->role) }})! 👋</h2>
                 <p class="welcome-sub">
                     Sistem Pendukung Keputusan Bantuan Sosial — Kelurahan Harjamukti<br>
                     <span style="font-size:.75rem; opacity:.5;">
@@ -101,7 +101,258 @@
     </div>
 </div>
 
-{{-- Stat Cards --}}
+@if($admin->role === 'petugas')
+{{-- ====================================================================== --}}
+{{-- ── DASHBOARD PETUGAS ── --}}
+{{-- ====================================================================== --}}
+<h4 class="fw-bold mb-3 text-primary"><i class="bi bi-briefcase-fill me-2"></i>Ringkasan Tugas Petugas</h4>
+
+<div class="row g-3 mb-4">
+    {{-- Aspek Validasi --}}
+    <div class="col-md-4">
+        <div class="stat-card border-warning">
+            <div class="stat-icon orange"><i class="bi bi-hourglass-split"></i></div>
+            <div>
+                <div class="stat-val text-warning">{{ number_format($stats['menunggu_validasi']) }}</div>
+                <div class="stat-lbl">Menunggu Validasi</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card border-success">
+            <div class="stat-icon green"><i class="bi bg-success bi-patch-check-fill text-white"></i></div>
+            <div>
+                <div class="stat-val text-success">{{ number_format($stats['pengajuan_valid']) }}</div>
+                <div class="stat-lbl">Pengajuan Valid (Diverifikasi)</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card border-danger">
+            <div class="stat-icon red"><i class="bi bi-x-circle-fill"></i></div>
+            <div>
+                <div class="stat-val text-danger">{{ number_format($stats['pengajuan_tidak_valid']) }}</div>
+                <div class="stat-lbl">Pengajuan Tidak Valid (Ditolak)</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h5 class="fw-bold mb-3 text-primary"><i class="bi bi-calendar3 me-2"></i>Status Penjadwalan & Penyaluran</h5>
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card border-warning">
+            <div class="stat-icon yellow"><i class="bi bi-calendar-x"></i></div>
+            <div>
+                <div class="stat-val text-warning">{{ number_format($stats['belum_dijadwalkan']) }}</div>
+                <div class="stat-lbl">Belum Dijadwalkan</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card border-info">
+            <div class="stat-icon blue"><i class="bi bi-calendar-check"></i></div>
+            <div>
+                <div class="stat-val text-info">{{ number_format($stats['sudah_dijadwalkan']) }}</div>
+                <div class="stat-lbl">Sudah Dijadwalkan</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card border-success">
+            <div class="stat-icon green"><i class="bi bi-bag-check"></i></div>
+            <div>
+                <div class="stat-val text-success">{{ number_format($stats['bantuan_diambil']) }}</div>
+                <div class="stat-lbl">Bantuan Sudah Diambil</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h5 class="fw-bold mb-3 text-primary"><i class="bi bi-bar-chart-fill me-2"></i>Statistik Ketepatan Penyaluran</h5>
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card border-success">
+            <div class="stat-icon green"><i class="bi bi-clock-fill"></i></div>
+            <div>
+                <div class="stat-val text-success">{{ number_format($stats['tepat_waktu']) }}</div>
+                <div class="stat-lbl">Tepat Waktu</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card border-danger">
+            <div class="stat-icon red"><i class="bi bi-clock-history"></i></div>
+            <div>
+                <div class="stat-val text-danger">{{ number_format($stats['terlambat']) }}</div>
+                <div class="stat-lbl">Terlambat</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card border-success">
+            <div class="stat-icon green"><i class="bi bi-person-check-fill"></i></div>
+            <div>
+                <div class="stat-val text-success">{{ number_format($stats['sesuai_sasaran']) }}</div>
+                <div class="stat-lbl">Sesuai Sasaran</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card border-danger">
+            <div class="stat-icon red"><i class="bi bi-person-x-fill"></i></div>
+            <div>
+                <div class="stat-val text-danger">{{ number_format($stats['tidak_sesuai']) }}</div>
+                <div class="stat-lbl">Tidak Sesuai Sasaran</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-12">
+        <div class="page-card">
+            <div class="card-head">
+                <h6 class="card-head-title"><i class="bi bi-info-circle-fill"></i> Tautan Navigasi Petugas</h6>
+            </div>
+            <div class="card-body-inner">
+                <div class="d-flex gap-3">
+                    <a href="{{ route('admin.petugas.validasi.index') }}" class="btn btn-warning flex-fill py-3">
+                        <i class="bi bi-file-earmark-check-fill fs-5"></i> Validasi Berkas Pengajuan
+                    </a>
+                    <a href="{{ route('admin.petugas.penyaluran.index') }}" class="btn btn-primary flex-fill py-3">
+                        <i class="bi bi-calendar-event fs-5"></i> Atur Jadwal Penyaluran
+                    </a>
+                    <a href="{{ route('admin.petugas.monitoring.index') }}" class="btn btn-success flex-fill py-3">
+                        <i class="bi bi-eye-fill fs-5"></i> Evaluasi & Monitoring Dampak
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@elseif($admin->role === 'lurah')
+{{-- ====================================================================== --}}
+{{-- ── DASHBOARD LURAH ── --}}
+{{-- ====================================================================== --}}
+<h4 class="fw-bold mb-3 text-primary"><i class="bi bi-person-check-fill me-2"></i>Persetujuan Calon Penerima Bantuan</h4>
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card border-primary">
+            <div class="stat-icon navy"><i class="bi bi-people-fill"></i></div>
+            <div>
+                <div class="stat-val text-primary">{{ number_format($stats['total_calon']) }}</div>
+                <div class="stat-lbl">Total Calon Penerima</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card border-warning">
+            <div class="stat-icon gold"><i class="bi bi-hourglass-split"></i></div>
+            <div>
+                <div class="stat-val text-warning">{{ number_format($stats['menunggu_setuju']) }}</div>
+                <div class="stat-lbl">Menunggu Persetujuan</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card border-success">
+            <div class="stat-icon green"><i class="bi bi-check-circle-fill"></i></div>
+            <div>
+                <div class="stat-val text-success">{{ number_format($stats['disetujui']) }}</div>
+                <div class="stat-lbl">Disetujui</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card border-danger">
+            <div class="stat-icon red"><i class="bi bi-x-circle-fill"></i></div>
+            <div>
+                <div class="stat-val text-danger">{{ number_format($stats['ditolak']) }}</div>
+                <div class="stat-lbl">Ditolak</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h5 class="fw-bold mb-3 text-primary"><i class="bi bi-graph-up me-2"></i>Monitoring & Ketepatan Penyaluran</h5>
+<div class="row g-3 mb-4">
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="stat-icon blue"><i class="bi bi-bag-check-fill"></i></div>
+            <div>
+                <div class="stat-val">{{ number_format($stats['total_penyaluran']) }}</div>
+                <div class="stat-lbl">Total Penyaluran</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="stat-icon green"><i class="bi bi-check-lg"></i></div>
+            <div>
+                <div class="stat-val text-success">{{ number_format($stats['tepat_waktu']) }}</div>
+                <div class="stat-lbl">Tepat Waktu</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="stat-icon red"><i class="bi bi-clock-history"></i></div>
+            <div>
+                <div class="stat-val text-danger">{{ number_format($stats['terlambat']) }}</div>
+                <div class="stat-lbl">Terlambat</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="stat-icon green"><i class="bi bi-person-check-fill"></i></div>
+            <div>
+                <div class="stat-val text-success">{{ number_format($stats['sesuai_sasaran']) }}</div>
+                <div class="stat-lbl">Sesuai Sasaran</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    {{-- Chart Ringkasan Dampak --}}
+    <div class="col-lg-6">
+        <div class="page-card h-100">
+            <div class="card-head">
+                <h6 class="card-head-title"><i class="bi bi-heart-fill text-danger"></i> Ringkasan Dampak Bantuan</h6>
+            </div>
+            <div class="card-body-inner">
+                <div style="position:relative; height:240px;">
+                    <canvas id="chartDampak"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Info Box navigasi --}}
+    <div class="col-lg-6">
+        <div class="page-card h-100">
+            <div class="card-head">
+                <h6 class="card-head-title"><i class="bi bi-info-circle-fill"></i> Tautan Navigasi Lurah</h6>
+            </div>
+            <div class="card-body-inner">
+                <p class="text-muted">Sebagai Lurah Kelurahan Harjamukti, Anda memiliki wewenang untuk meninjau data perankingan kelayakan (MOORA) dan memberikan persetujuan final.</p>
+                <div class="d-grid gap-2 mt-4">
+                    <a href="{{ route('admin.lurah.persetujuan.index') }}" class="btn btn-primary btn-lg py-3">
+                        <i class="bi bi-person-check-fill me-2 fs-5"></i> Masuk Menu Persetujuan Penerima
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@else
+{{-- ====================================================================== --}}
+{{-- ── DASHBOARD ADMIN (Default) ── --}}
+{{-- ====================================================================== --}}
 <div class="row g-3 mb-4">
     @php
         $cards = [
@@ -129,7 +380,6 @@
     @endforeach
 </div>
 
-{{-- Chart --}}
 <div class="page-card mb-4">
     <div class="card-head">
         <h6 class="card-head-title">
@@ -178,10 +428,7 @@
     </div>
 </div>
 
-{{-- Bottom Row --}}
 <div class="row g-4">
-
-    {{-- Tabel Hasil Seleksi Terbaru --}}
     <div class="col-lg-8">
         <div class="page-card h-100">
             <div class="card-head">
@@ -250,7 +497,6 @@
         </div>
     </div>
 
-    {{-- Info Sistem --}}
     <div class="col-lg-4">
         <div class="page-card h-100">
             <div class="card-head">
@@ -292,15 +538,57 @@
             </div>
         </div>
     </div>
-
 </div>
+@endif
 
 @endsection
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-@if(count($chartData['labels']) > 0)
+@if($admin->role === 'lurah')
+(function () {
+    const ctx = document.getElementById('chartDampak');
+    if (!ctx) return;
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Sangat Membantu', 'Membantu', 'Cukup Membantu', 'Tidak Membantu'],
+            datasets: [{
+                data: [
+                    {{ $stats['dampak_sangat'] }},
+                    {{ $stats['dampak_membantu'] }},
+                    {{ $stats['dampak_cukup'] }},
+                    {{ $stats['dampak_tidak'] }}
+                ],
+                backgroundColor: [
+                    '#059669', // green
+                    '#0284C7', // blue
+                    '#F59E0B', // orange/yellow
+                    '#DC2626'  // red
+                ],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        boxWidth: 12,
+                        font: { size: 11 }
+                    }
+                }
+            }
+        }
+    });
+})();
+@endif
+
+@if($admin->role === 'admin' && count($chartData['labels']) > 0)
 (function () {
     const ctx = document.getElementById('chartMonitoring');
     if (!ctx) return;

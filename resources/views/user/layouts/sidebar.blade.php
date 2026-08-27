@@ -45,6 +45,11 @@
             <i class="bi bi-trophy-fill nav-icon"></i>
             Hasil Kelayakan
         </a>
+        <a href="{{ route('user.statusbantuan.index') }}"
+           class="nav-link {{ request()->routeIs('user.statusbantuan*') ? 'active' : '' }}">
+            <i class="bi bi-calendar-check-fill nav-icon"></i>
+            Status Bantuan
+        </a>
 
         <div class="nav-section">
             <div class="nav-section-label">Akun Saya</div>

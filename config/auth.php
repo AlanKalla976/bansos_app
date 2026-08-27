@@ -46,6 +46,14 @@ return [
             'driver'   => 'session',
             'provider' => 'admins',
         ],
+        'petugas' => [
+            'driver'   => 'session',
+            'provider' => 'petugas_provider',
+        ],
+        'lurah' => [
+            'driver'   => 'session',
+            'provider' => 'lurah_provider',
+        ],
     ],
 
     /*
@@ -72,13 +80,16 @@ return [
         ],
         'admins' => [
             'driver' => 'eloquent',
-            'model'  => User::class, // satu tabel, dibedakan lewat kolom role
+            'model'  => User::class,
         ],
-
-        // 'users' => [
-        //     'driver' => 'database',
-        //     'table' => 'users',
-        // ],
+        'petugas_provider' => [
+            'driver' => 'eloquent',
+            'model'  => User::class,
+        ],
+        'lurah_provider' => [
+            'driver' => 'eloquent',
+            'model'  => User::class,
+        ],
     ],
 
     /*

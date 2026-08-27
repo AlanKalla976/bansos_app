@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Middleware Alias
         $middleware->alias([
             'auth.admin' => \App\Http\Middleware\AuthAdmin::class,
+            'role'       => \App\Http\Middleware\RoleMiddleware::class,
         ]);
 
         // Redirect ketika session/login habis

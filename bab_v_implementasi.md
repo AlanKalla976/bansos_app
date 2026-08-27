@@ -10,7 +10,7 @@ Bagian ini membahas mengenai rincian implementasi perangkat lunak dari sistem pe
 
 Proses masuk (*login*) ke dalam sistem membedakan hak akses berdasarkan penggolongan guard pengguna. Berikut adalah potongan listing kode untuk penanganan otentikasi login aktor administrator:
 
-##### Listing 5.1 Implementasi Login Admin
+##### Listing 5.1 Implementasi Login Multi-Role (Admin, Petugas, Lurah)
 ##### Nama File: `app/Http/Controllers/Auth/AdminAuthController.php`
 ```php
     public function login(Request $request)
@@ -25,7 +25,7 @@ Proses masuk (*login*) ke dalam sistem membedakan hak akses berdasarkan penggolo
         ]);
 
         $admin = User::where('email', $request->email)
-                     ->where('role', 'admin')
+                     ->whereIn('role', ['admin', 'petugas', 'lurah'])
                      ->first();
 
         if (!$admin || !Hash::check($request->password, $admin->password)) {
@@ -34,15 +34,26 @@ Proses masuk (*login*) ke dalam sistem membedakan hak akses berdasarkan penggolo
                 ->withErrors(['email' => 'Email atau password salah.']);
         }
 
-        Auth::guard('admin')->login($admin, $request->boolean('remember'));
+        // Tentukan guard secara dinamis berdasarkan role user
+        $guard = $admin->role; 
+        Auth::guard($guard)->login($admin, $request->boolean('remember'));
 
-        return redirect()->route('admin.dashboard');
+        if ($guard === 'petugas') {
+            return redirect()->route('admin.petugas.dashboard')
+                             ->with('success', 'Login berhasil! Selamat datang, ' . $admin->name . '.');
+        } elseif ($guard === 'lurah') {
+            return redirect()->route('admin.lurah.dashboard')
+                             ->with('success', 'Login berhasil! Selamat datang, ' . $admin->name . '.');
+        }
+
+        return redirect()->route('admin.dashboard')
+                         ->with('success', 'Login berhasil! Selamat datang, ' . $admin->name . '.');
     }
 ```
 
-Method `login()` pada `AdminAuthController` berfungsi sebagai pintu gerbang autentikasi bagi aktor Administrator. Langkah pengujian diawali dengan proses validasi parameter masukan berupa `email` dan `password` menggunakan validasi bawaan Laravel dengan menyertakan pesan kesalahan (*error message*) kustom dalam Bahasa Indonesia. Setelah dinyatakan valid secara format, sistem melakukan pencarian data pada tabel `users` dengan menyaring kriteria email yang dikirimkan serta mensyaratkan status hak akses `role` harus bernilai `'admin'`.
+Method `login()` pada `AdminAuthController` berfungsi sebagai pintu gerbang autentikasi dinamis untuk aktor bertingkat, yaitu Administrator, Petugas, dan Lurah. Validasi masukan dilakukan menggunakan mekanisme bawaan Laravel untuk memverifikasi kesesuaian format `email` dan `password`. Kueri SQL ke tabel `users` menyaring email masukan serta mensyaratkan peran (`role`) berada dalam daftar `'admin'`, `'petugas'`, atau `'lurah'`.
 
-Langkah verifikasi keamanan dilanjutkan dengan membandingkan kata sandi teks murni kiriman pengguna dengan sandi terenkripsi (hash Bcrypt) yang tersimpan di dalam database melalui perantara `Hash::check()`. Jika data admin tidak ditemukan atau pencocokan hash sandi bernilai salah, sistem mengembalikan admin ke formulir login semula dengan tetap menampilkan data email sebelumnya (*withInput*) serta memicu pesan error. Apabila proses otentikasi bernilai benar, sistem mendaftarkan sesi pengguna menggunakan guard admin (`Auth::guard('admin')->login()`) dan mengalihkan halaman menuju Dashboard Admin.
+Kata sandi murni dicocokkan dengan teks terenkripsi Bcrypt di database menggunakan `Hash::check()`. Jika kredensial valid, sistem mendeteksi peran pengguna secara dinamis dan mendaftarkan status sesi otentikasi melalui guard Laravel yang sesuai (`Auth::guard($guard)->login()`). Alur diakhiri dengan pengalihan rute ke dashboard spesifik perannya masing-masing (dashboard petugas, dashboard lurah, atau dashboard admin utama) disertai penayangan flash message sambutan.
 
 ---
 
@@ -253,6 +264,15 @@ Setelah berkas pengajuan warga diverifikasi, administrator harus memasukkan peni
             'penilaian.*.nilai'          => 'required|numeric',
         ]);
 
+        $pengajuan = Pengajuan::findOrFail($request->pengajuan_id);
+        if ($pengajuan->status !== 'Diverifikasi') {
+            return redirect()->route('admin.penilaian.index')
+                ->with('error', 'Penilaian hanya dapat diinput untuk pengajuan yang telah divalidasi (status Diverifikasi).');
+        }
+
+        // Cek apakah sebelumnya sudah ada penilaian untuk pengajuan ini (untuk pesan yang sesuai)
+        $isUpdate = Penilaian::where('pengajuan_id', $request->pengajuan_id)->exists();
+
         foreach ($request->penilaian as $item) {
             Penilaian::updateOrCreate(
                 [
@@ -266,14 +286,16 @@ Setelah berkas pengajuan warga diverifikasi, administrator harus memasukkan peni
             );
         }
 
+        $pesan = $isUpdate ? 'Penilaian berhasil diperbarui.' : 'Penilaian berhasil disimpan.';
+
         return redirect()->route('admin.penilaian.index')
-            ->with('success', 'Penilaian berhasil disimpan.');
+            ->with('success', $pesan);
     }
 ```
 
-Method `store()` pada `PenilaianController` digunakan oleh Admin untuk menginput atau memperbarui nilai kriteria pengajuan warga (alternatif) yang telah berstatus diverifikasi. Input divalidasi agar memastikan `pengajuan_id` terdaftar, serta data input penilaian dikirim dalam format array yang beranggotakan relasi kunci asing `kriteria_id`, `subkriteria_id`, dan representasi kuantitatif `nilai` dari subkriteria terkait.
+Method `store()` pada `PenilaianController` digunakan oleh Administrator untuk merekam data parameter kriteria pengajuan warga (alternatif). Form validasi memverifikasi keberadaan data pengajuan, kriteria, dan subkriteria. Pengecekan tambahan dilakukan untuk memastikan bahwa pengajuan alternatif wajib berstatus `'Diverifikasi'` (telah divalidasi petugas) sebelum nilai diinputkan; jika tidak, sistem membatalkan pemrosesan guna menjamin kualitas validitas data alternatif.
 
-Proses penyimpanan data menggunakan teknik iterasi `foreach` yang di dalamnya mengeksekusi metode Eloquent `updateOrCreate()`. Struktur ini sangat efisien karena sistem akan melakukan pemeriksaan terlebih dahulu pada kombinasi `pengajuan_id` dan `kriteria_id` di tabel `penilaians`. Apabila kombinasi data tersebut sudah ada di database, sistem akan langsung memperbarui (*update*) kolom `subkriteria_id` dan `nilai`. Jika data belum pernah disimpan, sistem secara otomatis akan membuat record baru (*create*). Pola ini menghindarkan terjadinya data ganda pada penilaian alternatif untuk kriteria yang sama. Setelah seluruh iterasi berakhir, halaman dialihkan kembali ke indeks penilaian dengan memicu flash session sukses.
+Sistem juga mendeteksi riwayat pengisian sebelumnya dengan memeriksa keberadaan record penilaian melalui kueri `exists()`. Skenario penyimpanan menggunakan iterasi `foreach` yang mengeksekusi Eloquent `updateOrCreate()`. Jika kombinasi kunci alternatif dan kriteria terdeteksi ganda, kolom subkriteria dan nilai langsung diperbarui (*update*), dan record baru (*create*) dibentuk jika data belum pernah diisi. Variabel notifikasi `$pesan` diatur secara dinamis untuk memberikan penegasan status penambahan baru atau pembaruan data sebelum dialihkan ke halaman utama penilaian.
 
 ---
 
@@ -350,7 +372,10 @@ Pemeringkatan pengajuan calon penerima bantuan sosial diselesaikan menggunakan p
                 ->with('error', $hasil['error']);
         }
 
-        // Konversi agar aman di session (tanpa batasLayak — kelayakan ditentukan di view: yi >= 0.35)
+        // Tentukan status Layak/Tidak Layak berdasarkan kuota per jenis bantuan
+        $rankedWithStatus = $this->tentukanStatusByKuota($hasil['ranked']);
+
+        // Konversi agar aman di session
         $hasilSession = [
             'kriterias'   => $hasil['kriterias']->map(fn($k) => [
                 'kriteria_id'   => $k->kriteria_id,
@@ -374,8 +399,10 @@ Pemeringkatan pengajuan calon penerima bantuan sosial diselesaikan menggunakan p
                 'nama'          => $r['pengajuan']->nama,
                 'nik'           => $r['pengajuan']->nik,
                 'jenis_bantuan' => $r['pengajuan']->bantuanSosial->nama_bantuan ?? '-',
+                'kuota'         => $r['pengajuan']->bantuanSosial->kuota ?? 0,
                 'yi'            => $r['yi'],
-            ], $hasil['ranked']),
+                'status'        => $r['status'],
+            ], $rankedWithStatus),
             'n' => $hasil['n'],
             'm' => $hasil['m'],
         ];
@@ -386,9 +413,9 @@ Pemeringkatan pengajuan calon penerima bantuan sosial diselesaikan menggunakan p
     }
 ```
 
-Method `hitungMoora()` pada `PenilaianController` memproses pemeringkatan seluruh alternatif pengajuan warga yang memenuhi kualifikasi verifikasi berkas. Proses kalkulasi dipicu dengan memanggil `MooraService->hitung()`. Di dalam service tersebut, sistem membentuk matriks keputusan, menormalkannya menggunakan pembagi akar jumlah kuadrat per kolom kriteria, mengalikan nilai ternormalisasi dengan bobot kriteria hasil AHP, dan menghitung nilai optimasi $Y_i$ (selisih total kriteria *benefit* dengan kriteria *cost*). Penentuan status kelayakan (Layak/Tidak Layak) juga diselesaikan pada level service untuk memperbarui data pemenang secara dinamis di database.
+Method `hitungMoora()` di dalam `PenilaianController` memproses algoritma optimasi pemeringkatan multi-kriteria untuk alternatif pengajuan warga. Proses kalkulasi dioperasikan melalui `MooraService->hitung()`, yang menyusun matriks keputusan, menormalkan data, mengalikan dengan bobot kriteria AHP, serta mengkalkulasikan nilai optimasi $Y_i$. Modifikasi baru pada sistem melibatkan penentuan status kelayakan (Layak/Tidak Layak) secara lebih adaptif dengan mengeksekusi fungsi `tentukanStatusByKuota()`. Fungsi ini mengelompokkan kandidat berdasarkan program bantuan, membandingkan posisi rangking dengan kuota masing-masing bansos yang terdaftar pada database, kemudian menentukan kelayakan secara akurat tanpa batasan ambang batas (*threshold*) statis.
 
-Setelah kalkulasi sukses dilakukan, sistem mengubah data hasil perhitungan yang bertipe objek Eloquent menjadi struktur data array konvensional (`$hasilSession`) demi keamanan session flash data. Struktur array memuat detail matriks ternormalisasi, daftar alternatif (`pengajuans`), nilai optimasi akhir `$yi`, serta susunan rangking yang terurut berdasarkan nilai Yi terbesar. Pengalihan rute kembali ke indeks penilaian dibarengi dengan melempar payload `$hasilSession` ke session agar antarmuka admin dapat merender grafik dan tabel hasil perhitungan MOORA secara transparan dan detail.
+Hasil kalkulasi diubah menjadi struktur array `$hasilSession` untuk meminimalisir kegagalan pembacaan data session pada Laravel. Array ini menyajikan detail matriks perhitungan, data parameter, nilai akhir optimasi $Y_i$, kuota jenis bantuan, serta status kelayakan yang dihasilkan. Alur diakhiri dengan mengembalikan respons ke rute utama penilaian alternatif sembari mengirimkan payload session hasil MOORA untuk dirender secara dinamis di antarmuka admin.
 
 ---
 
@@ -401,33 +428,75 @@ Hasil akhir dari pemrosesan pemeringkatan disajikan dalam bentuk daftar rangking
 ```php
     public function index(Request $request)
     {
-        $query = HasilAkhir::with(['pengajuan.bantuanSosial'])
-            ->orderBy('ranking');
+        // Ambil SEMUA data dulu (tanpa filter jenis_bantuan/status, tanpa pagination)
+        // supaya global_ranking, ranking_in_bantuan, dan status per-kuota dihitung
+        // dari populasi data yang lengkap dan benar.
+        $baseQuery = HasilAkhir::with(['pengajuan.bantuanSosial']);
 
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->whereHas('pengajuan', function ($q) use ($search) {
+            $baseQuery->whereHas('pengajuan', function ($q) use ($search) {
                 $q->where('nama', 'like', "%{$search}%")
                   ->orWhere('nik',  'like', "%{$search}%");
             });
         }
 
-        if ($request->filled('jenis_bantuan')) {
-            $query->whereHas('pengajuan.bantuanSosial', fn($q) =>
-                $q->where('id', $request->jenis_bantuan)
-            );
+        // Ambil semua data (sudah kena filter search jika ada), lalu urutkan
+        // berdasarkan nilai_yi (bukan kolom ranking) supaya tidak bolong.
+        $allItems = $baseQuery->get()->sortByDesc('nilai_yi')->values();
+        $allItems = $this->attachStatusByKuota($allItems);
+
+        $jenisBantuanId = $request->input('jenis_bantuan');
+
+        // Filter jenis bantuan diterapkan SETELAH ranking dihitung, supaya
+        // ranking_in_bantuan tetap konsisten (mulai dari 1 untuk jenis itu).
+        $filtered = $allItems;
+        if ($jenisBantuanId) {
+            $filtered = $filtered->filter(function ($h) use ($jenisBantuanId) {
+                return ($h->pengajuan->bantuanSosial->id ?? null) == $jenisBantuanId;
+            })->values();
         }
 
+        // Filter status (Layak/Tidak Layak) diterapkan setelah status dihitung dari kuota
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            $filtered = $filtered->filter(function ($h) use ($request) {
+                return $h->status_computed === $request->status;
+            })->values();
         }
 
-        $hasilAkhirs      = $query->paginate(10)->withQueryString();
+        // Tentukan ranking yang ditampilkan di tabel:
+        // - Tidak difilter jenis bantuan -> pakai global_ranking
+        // - Difilter jenis bantuan tertentu -> pakai ranking_in_bantuan (mulai dari 1 lagi)
+        foreach ($filtered as $h) {
+            $h->ranking_display = $jenisBantuanId ? $h->ranking_in_bantuan : $h->global_ranking;
+        }
+
+        // Pagination manual
+        $perPage = 10;
+        $page    = $request->get('page', 1);
+        $offset  = ($page - 1) * $perPage;
+
+        $itemsForPage = $filtered->slice($offset, $perPage)->values();
+
+        $hasilAkhirs = new \Illuminate\Pagination\LengthAwarePaginator(
+            $itemsForPage,
+            $filtered->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
         $jenisBantuanList = BantuanSosial::pluck('nama_bantuan', 'id');
 
-        $total           = HasilAkhir::count();
-        $totalLayak      = HasilAkhir::where('status', 'Layak')->count();
-        $totalTidakLayak = HasilAkhir::where('status', 'Tidak Layak')->count();
+        // Statistik total berdasarkan status hasil perhitungan kuota (bukan kolom status di DB)
+        // Dihitung dari SELURUH data (tanpa filter apapun) supaya statistik tetap global.
+        $allForStats = $this->attachStatusByKuota(
+            HasilAkhir::with(['pengajuan.bantuanSosial'])->get()
+        );
+
+        $total           = $allForStats->count();
+        $totalLayak      = $allForStats->where('status_computed', 'Layak')->count();
+        $totalTidakLayak = $allForStats->where('status_computed', 'Tidak Layak')->count();
 
         return view('admin.hasilakhir.index', compact(
             'hasilAkhirs',
@@ -439,9 +508,9 @@ Hasil akhir dari pemrosesan pemeringkatan disajikan dalam bentuk daftar rangking
     }
 ```
 
-Method `index()` pada `HasilAkhirController` bertugas untuk menyajikan data laporan hasil akhir seleksi secara terstruktur yang dilengkapi fitur pencarian, penyaringan (*filtering*), dan penomoran halaman (*pagination*). Pemanggilan kueri ke database menggunakan eager loading (`with(['pengajuan.bantuanSosial'])`) untuk menghindari permasalahan kueri berulang (N+1 query problem). Data hasil pemeringkatan secara default diurutkan berdasarkan atribut `ranking` dari nilai terkecil ke terbesar.
+Method `index()` pada `HasilAkhirController` bertugas mengolah dan menyajikan laporan kelayakan akhir penerima bansos. Untuk mencegah kesalahan kalkulasi ranking, sistem mengambil populasi data secara menyeluruh (`$baseQuery->get()`) sebelum melakukan filter jenis bantuan atau status kelayakan. Data kemudian diurutkan berdasarkan `nilai_yi` secara desendens guna menetapkan `global_ranking` dan `ranking_in_bantuan` serta status kelayakan dinamis (`status_computed`) berdasarkan kuota melalui fungsi penolong `attachStatusByKuota()`. 
 
-Fitur pencarian dan filter diimplementasikan dengan memanfaatkan kondisional `if ($request->filled(...))` untuk memodifikasi klausul kueri Eloquent secara dinamis. Filter pencarian memindai string input pada atribut `nama` atau `nik` warga, filter `jenis_bantuan` membatasi hasil pada ID jenis bansos tertentu, dan filter `status` menyaring kelayakan berdasarkan status 'Layak' atau 'Tidak Layak'. Hasil kueri dibatasi sebanyak 10 baris per halaman menggunakan `paginate(10)` dan digabungkan kembali dengan query string asli agar navigasi halaman tetap mempertahankan status filter. Sistem juga mengagregasikan statistik berupa jumlah total data pengajuan, total pengajuan yang berstatus layak, serta total pengajuan yang tidak layak untuk ditampilkan pada panel informasi dashboard hasil.
+Setelah struktur ranking dihitung secara utuh, sistem menerapkan filter pencarian nama/NIK, penyaringan program bantuan, dan penyaringan status kelayakan secara bertahap. Sistem kemudian menentukan ranking visual (`ranking_display`) yang akan disajikan pada tabel secara dinamis. Karena data berupa Collection yang difilter secara manual di level aplikasi, sistem mengimplementasikan pembagian halaman secara manual (*manual pagination*) menggunakan `LengthAwarePaginator` Laravel. Terakhir, panel statistik mengukur persentase penerima dengan menjumlahkan data kelayakan yang konsisten secara global sebelum data dialirkan ke halaman visualisasi.
 
 ---
 
@@ -454,33 +523,87 @@ Dashboard menyajikan statistik agregat monitoring pendaftaran pengajuan dan visu
 ```php
     public function index(Request $request)
     {
-        $admin = Auth::guard('admin')->user();
+        if ($request->is('admin/petugas') || $request->is('admin/petugas/*')) {
+            $admin = Auth::guard('petugas')->user();
+        } elseif ($request->is('admin/lurah') || $request->is('admin/lurah/*')) {
+            $admin = Auth::guard('lurah')->user();
+        } else {
+            $admin = Auth::guard('admin')->user();
+        }
 
-        // ==========================
-        // Statistik Dashboard
-        // ==========================
+        // ── DASHBOARD PETUGAS ──
+        if ($admin->role === 'petugas') {
+            $stats = [
+                'menunggu_validasi' => \App\Models\Pengajuan::where('status', 'Menunggu')->count(),
+                'pengajuan_valid'    => \App\Models\Pengajuan::where('status', 'Diverifikasi')->count(),
+                'pengajuan_tidak_valid' => \App\Models\Pengajuan::where('status', 'Ditolak')->count(),
+                'belum_dijadwalkan'  => \App\Models\Penyaluran::where('status', 'Belum Dijadwalkan')->count(),
+                'sudah_dijadwalkan'  => \App\Models\Penyaluran::where('status', 'Sudah Dijadwalkan')->count(),
+                'bantuan_diambil'    => \App\Models\Penyaluran::where('status', 'Sudah Diambil')->count(),
+                'tepat_waktu'        => \App\Models\Monitoring::where('ketepatan_waktu', 'Tepat Waktu')->count(),
+                'terlambat'          => \App\Models\Monitoring::where('ketepatan_waktu', 'Terlambat')->count(),
+                'sesuai_sasaran'     => \App\Models\Monitoring::where('ketepatan_sasaran', 'Sesuai Sasaran')->count(),
+                'tidak_sesuai'       => \App\Models\Monitoring::where('ketepatan_sasaran', 'Tidak Sesuai Sasaran')->count(),
+            ];
+
+            return view('admin.dashboard.index', compact('admin', 'stats'));
+        }
+
+        // ── DASHBOARD LURAH ──
+        if ($admin->role === 'lurah') {
+            $stats = [
+                'total_calon'        => \App\Models\HasilAkhir::count(),
+                'menunggu_setuju'    => \App\Models\HasilAkhir::where('persetujuan_status', 'Menunggu Persetujuan')->count(),
+                'disetujui'          => \App\Models\HasilAkhir::where('persetujuan_status', 'Disetujui')->count(),
+                'ditolak'            => \App\Models\HasilAkhir::where('persetujuan_status', 'Ditolak')->count(),
+                'total_penyaluran'   => \App\Models\Penyaluran::where('status', 'Sudah Diambil')->count(),
+                'tepat_waktu'        => \App\Models\Monitoring::where('ketepatan_waktu', 'Tepat Waktu')->count(),
+                'terlambat'          => \App\Models\Monitoring::where('ketepatan_waktu', 'Terlambat')->count(),
+                'sesuai_sasaran'     => \App\Models\Monitoring::where('ketepatan_sasaran', 'Sesuai Sasaran')->count(),
+                'tidak_sesuai'       => \App\Models\Monitoring::where('ketepatan_sasaran', 'Tidak Sesuai Sasaran')->count(),
+                ...
+            ];
+
+            return view('admin.dashboard.index', compact('admin', 'stats'));
+        }
+
+        // ── DASHBOARD ADMIN (Lama/Default) ──
         $totalMasyarakat = User::where('role', 'masyarakat')->count();
         $totalPengajuan  = Pengajuan::count();
 
-        $totalBPNT = Pengajuan::whereHas('bantuanSosial', function ($q) {
-            $q->where('nama_bantuan', 'LIKE', '%BPNT%');
-        })->count();
+        $totalBPNT = Pengajuan::whereHas('bantuanSosial', fn($q) =>
+            $q->where('nama_bantuan', 'LIKE', '%BPNT%')
+        )->count();
 
-        $totalBLT = Pengajuan::whereHas('bantuanSosial', function ($q) {
-            $q->where('nama_bantuan', 'LIKE', '%BLT%');
-        })->count();
+        $totalBLT = Pengajuan::whereHas('bantuanSosial', fn($q) =>
+            $q->where('nama_bantuan', 'LIKE', '%BLT%')
+        )->count();
 
-        $totalPKH = Pengajuan::whereHas('bantuanSosial', function ($q) {
-            $q->where('nama_bantuan', 'LIKE', '%PKH%');
-        })->count();
+        $totalPKH = Pengajuan::whereHas('bantuanSosial', fn($q) =>
+            $q->where('nama_bantuan', 'LIKE', '%PKH%')
+        )->count();
 
-        // Perbaikan batas kelayakan (>= 0.35) untuk Counter Statistik
-        $totalLayak = HasilAkhir::where('nilai_yi', '>=', 0.35)->count();
-        $totalTidakLayak = HasilAkhir::where('nilai_yi', '<', 0.35)->count();
+        // Hitung Layak/Tidak Layak berdasarkan kuota per jenis bantuan
+        $totalLayak      = 0;
+        $totalTidakLayak = 0;
 
-        // ==========================
+        $semuaBantuan = BantuanSosial::all();
+        foreach ($semuaBantuan as $bantuan) {
+            $kuota = $bantuan->kuota ?? 0;
+            $hasil = HasilAkhir::whereHas('pengajuan', fn($q) =>
+                $q->where('bantuan_sosial_id', $bantuan->id)
+            )->orderBy('ranking')->get();
+
+            foreach ($hasil as $item) {
+                if ($item->ranking <= $kuota) {
+                    $totalLayak++;
+                } else {
+                    $totalTidakLayak++;
+                }
+            }
+        }
+
         // Filter Dashboard
-        // ==========================
         $tahunList = HasilAkhir::selectRaw('YEAR(created_at) as tahun')
             ->groupBy('tahun')
             ->orderByDesc('tahun')
@@ -490,23 +613,19 @@ Dashboard menyajikan statistik agregat monitoring pendaftaran pengajuan dan visu
             $tahunList = collect([date('Y')]);
         }
 
-        $filterTahun = $request->tahun ?? date('Y');
+        $filterTahun   = $request->tahun ?? date('Y');
         $filterBantuan = $request->jenis_bantuan ?? 'semua';
 
         $jenisBantuanList = BantuanSosial::all();
 
-        // ==========================
         // Monitoring Chart
-        // ==========================
         $chartData = $this->getChartData($filterTahun, $filterBantuan);
 
-        // ==========================
         // 5 Hasil Terbaru
-        // ==========================
         $hasilTerbaru = HasilAkhir::with([
                 'pengajuan',
                 'pengajuan.user',
-                'pengajuan.bantuanSosial'
+                'pengajuan.bantuanSosial',
             ])
             ->latest()
             ->take(5)
@@ -531,9 +650,9 @@ Dashboard menyajikan statistik agregat monitoring pendaftaran pengajuan dan visu
     }
 ```
 
-Method `index()` pada `DashboardController` digunakan untuk menyusun berbagai data visualisasi indikator kinerja utama (*KPI*) dan monitoring grafis mengenai progres distribusi program bantuan sosial. Panel statistik menyajikan jumlah warga terdaftar (`totalMasyarakat`), akumulasi total berkas masuk (`totalPengajuan`), serta pengelompokan volume pengaju berdasarkan skema bansos khusus (BPNT, BLT, PKH). Parameter kelayakan ditentukan secara eksplisit lewat ambang batas nilai optimasi MOORA $Y_i \ge 0.35$ untuk menghitung total kandidat layak dan tidak layak.
+Method `index()` pada `DashboardController` menyajikan antarmuka pemantauan data statistik yang disesuaikan secara adaptif berdasarkan peran dari aktor yang terautentikasi (Multi-Role Dashboard). Pengguna diidentifikasi melalui validasi rute URL request (`$request->is()`), kemudian dialihkan menggunakan guard otentikasi yang bersangkutan (Petugas, Lurah, atau Admin Utama). Di sisi Petugas, sistem merangkum jumlah berkas yang menunggu divalidasi, pengajuan ditolak, status penjadwalan penyaluran, serta indikator ketepatan waktu pengiriman. Di sisi Lurah, sistem memonitor akumulasi calon penerima, persetujuan status lurah, total penyaluran terealisasi, dan penilaian dampak kebermanfaatan bansos.
 
-Fungsi ini juga menyiapkan data monitoring grafis dengan memanggil fungsi privat `getChartData()` yang didasarkan pada filter parameter `tahun` dan jenis program bantuan yang diajukan oleh pengguna. Hal ini memicu filterisasi dinamis untuk mengumpulkan data series tren penyaluran layak dan tidak layak per jenis bansos. Seluruh data agregasi, grafik pencapaian, beserta 5 entri riwayat perhitungan mutakhir dikompilasi secara terpadu sebelum dialihkan ke view dashboard admin.
+Pada sisi Administrator Utama, sistem menyusun data statistik berupa volume pengajuan kualitatif, status program khusus (BPNT, BLT, PKH), serta visualisasi statistik kelayakan. Data jumlah penerima layak (`totalLayak`) dan tidak layak (`totalTidakLayak`) dihitung secara otomatis dengan membandingkan parameter ranking alternatif terhadap kuota riil masing-masing jenis program bantuan sosial yang tersimpan di database (`$bantuan->kuota`). Data komprehensif ini digabungkan bersama grafik series waktu tahunan dan riwayat kalkulasi terbaru untuk diumpankan ke view dashboard.
 
 ---
 
@@ -549,18 +668,19 @@ Data program bantuan sosial didaftarkan ke dalam sistem agar warga dapat mengaju
         $request->validate([
             'nama_bantuan' => 'required|string|max:100',
             'deskripsi'    => 'nullable|string',
+            'kuota'        => 'required|integer|min:0',
         ]);
 
-        BantuanSosial::create($request->only('nama_bantuan', 'deskripsi'));
+        BantuanSosial::create($request->only('nama_bantuan', 'deskripsi', 'kuota'));
 
         return redirect()->route('admin.bantuansosial.index')
                          ->with('success', 'Data bantuan sosial berhasil ditambahkan.');
     }
 ```
 
-Method `store()` pada `BantuanSosialController` bertindak sebagai pemroses penyimpanan program bantuan sosial baru yang dikelola oleh Admin. Aturan validasi memastikan bahwa atribut `nama_bantuan` tidak boleh kosong, bertipe teks, dan dibatasi sepanjang 100 karakter untuk mencegah anomali pada struktur basis data, sementara kolom `deskripsi` didefinisikan sebagai field opsional (`nullable`).
+Method `store()` pada `BantuanSosialController` memproses perekaman jenis program bantuan sosial yang baru ke dalam basis data. Selain nama program bantuan dan deskripsi detailnya, sistem mewajibkan penginputan atribut `kuota` penyaluran dalam bentuk bilangan bulat non-negatif (`integer|min:0`). Penambahan kuota ini penting sebagai dasar pembatas kapasitas maksimum penerimaan bantuan pada proses perankingan dan visualisasi statistik kelayakan sistem.
 
-Penyimpanan data memanfaatkan metode `BantuanSosial::create()` dengan membatasi masukan hanya pada parameter yang diinginkan melalui pemanggilan `$request->only()`. Langkah proteksi parameter ini penting untuk mengimplementasikan *mass assignment protection* yang aman pada Laravel. Terakhir, setelah pemrosesan sukses, rute dipindahkan kembali ke daftar manajemen bansos disertai flash data pemberitahuan sukses penambahan data.
+Data bansos yang tervalidasi kemudian diumpankan ke method `BantuanSosial::create()` secara aman melalui filter parameter `$request->only()`. Penggunaan pembatasan input ini ditujukan untuk memblokir anomali pengiriman data ilegal di luar schema (*mass assignment protection*). Terakhir, sistem mengalihkan rute kembali ke tampilan daftar bantuan sosial serta menyematkan notifikasi sukses ke session.
 
 ---
 
@@ -568,13 +688,18 @@ Penyimpanan data memanfaatkan metode `BantuanSosial::create()` dengan membatasi 
 
 Proses penutupan sesi yang sedang aktif dan penghancuran token otentikasi. Berikut potongan listing kodenya:
 
-##### Listing 5.12 Proses Logout Admin dan Pembersihan Session
+##### Listing 5.12 Proses Logout Multi-Guard dan Pembersihan Sesi
 ##### Nama File: `app/Http/Controllers/Auth/AdminAuthController.php`
 ```php
     public function logout(Request $request)
     {
-        Auth::guard('admin')->logout();
-        $request->session()->invalidate();
+        // Logout guard yang sedang aktif
+        foreach (['admin', 'petugas', 'lurah'] as $g) {
+            if (Auth::guard($g)->check()) {
+                Auth::guard($g)->logout();
+            }
+        }
+
         $request->session()->regenerateToken();
 
         return redirect()->route('admin.login')
@@ -582,9 +707,9 @@ Proses penutupan sesi yang sedang aktif dan penghancuran token otentikasi. Berik
     }
 ```
 
-Method `logout()` di dalam `AdminAuthController` menangani penutupan sesi aktif pengguna secara aman pada aktor Admin. Proses pembersihan diawali dengan memanggil fungsi `Auth::guard('admin')->logout()` untuk mengakhiri status terautentikasi pengguna pada guard administratif admin.
+Method `logout()` di dalam `AdminAuthController` berfungsi mengakhiri sesi aktif pengguna secara aman bagi seluruh jajaran peran yang terdaftar (Multi-Guard Logout). Sistem melakukan perulangan `foreach` untuk memindai status otentikasi pada guard `'admin'`, `'petugas'`, dan `'lurah'`. Apabila terdeteksi guard yang aktif, fungsi `Auth::guard($g)->logout()` dieksekusi guna mencabut kredensial pengguna.
 
-Demi mencegah celah keamanan berupa pembajakan sesi (*session fixation attacks*), sistem mengeksekusi `$request->session()->invalidate()` untuk menghancurkan seluruh data session yang tersimpan di sisi server. Selanjutnya, token CSRF diubah secara dinamis melalui `$request->session()->regenerateToken()`. Siklus penutupan akun diakhiri dengan mengarahkan admin ke halaman formulir login kembali disertai flash message sukses.
+Untuk menghindari celah kerentanan pembajakan token (*session fixation*), token CSRF diubah dengan memanggil `$request->session()->regenerateToken()`. Pengguna yang sukses keluar sistem kemudian dialihkan ke rute utama login admin formal dibarengi flash session pemberitahuan keluar sistem sukses.
 
 ---
 

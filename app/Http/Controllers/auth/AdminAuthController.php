@@ -12,9 +12,6 @@ class AdminAuthController extends Controller
 {
     public function showLogin()
     {
-        if (Auth::guard('admin')->check()) {
-            return redirect()->route('admin.dashboard');
-        }
         return view('auth.admin.login');
     }
 
@@ -30,7 +27,7 @@ class AdminAuthController extends Controller
         ]);
 
         $admin = User::where('email', $request->email)
-                     ->where('role', 'admin')
+                     ->whereIn('role', ['admin', 'petugas', 'lurah'])
                      ->first();
 
         if (!$admin || !Hash::check($request->password, $admin->password)) {
@@ -39,8 +36,17 @@ class AdminAuthController extends Controller
                 ->withErrors(['email' => 'Email atau password salah.']);
         }
 
-        // PENTING: selalu sebutkan guard secara eksplisit
-        Auth::guard('admin')->login($admin, $request->boolean('remember'));
+        // Tentukan guard secara dinamis berdasarkan role user
+        $guard = $admin->role; 
+        Auth::guard($guard)->login($admin, $request->boolean('remember'));
+
+        if ($guard === 'petugas') {
+            return redirect()->route('admin.petugas.dashboard')
+                             ->with('success', 'Login berhasil! Selamat datang, ' . $admin->name . '.');
+        } elseif ($guard === 'lurah') {
+            return redirect()->route('admin.lurah.dashboard')
+                             ->with('success', 'Login berhasil! Selamat datang, ' . $admin->name . '.');
+        }
 
         return redirect()->route('admin.dashboard')
                          ->with('success', 'Login berhasil! Selamat datang, ' . $admin->name . '.');
@@ -48,13 +54,13 @@ class AdminAuthController extends Controller
 
     public function logout(Request $request)
     {
-        // PENTING: hanya logout guard admin, JANGAN panggil Auth::logout() tanpa guard
-        Auth::guard('admin')->logout();
+        // Logout guard yang sedang aktif
+        foreach (['admin', 'petugas', 'lurah'] as $g) {
+            if (Auth::guard($g)->check()) {
+                Auth::guard($g)->logout();
+            }
+        }
 
-        // JANGAN pakai $request->session()->invalidate() di sini kalau mau guard lain
-        // (misal web) tetap login, karena invalidate() akan menghapus SELURUH session,
-        // termasuk punya guard lain dalam satu browser/tab yang sama.
-        // Cukup regenerate token CSRF saja:
         $request->session()->regenerateToken();
 
         return redirect()->route('admin.login')

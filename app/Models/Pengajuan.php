@@ -28,12 +28,15 @@ class Pengajuan extends Model
         'foto_rumah',
         'status',
         'alasan_penolakan',
+        'validated_by',
+        'validated_at',
     ];
 
     protected $casts = [
         'tanggal_lahir'    => 'date',
         'penghasilan'      => 'decimal:2',
         'jumlah_tanggungan'=> 'integer',
+        'validated_at'     => 'datetime',
     ];
 
     public function user()
@@ -44,5 +47,37 @@ class Pengajuan extends Model
     public function bantuanSosial()
     {
         return $this->belongsTo(BantuanSosial::class, 'bantuan_sosial_id');
+    }
+
+    /**
+     * Petugas yang melakukan validasi berkas.
+     */
+    public function validator()
+    {
+        return $this->belongsTo(User::class, 'validated_by', 'users_id');
+    }
+
+    /**
+     * Helper: apakah berkas sudah divalidasi (Valid atau Tidak Valid)?
+     */
+    public function sudahDivalidasi(): bool
+    {
+        return in_array($this->status, ['Diverifikasi', 'Ditolak']);
+    }
+
+    /**
+     * Helper: apakah pengajuan ini bisa masuk proses penilaian?
+     */
+    public function bisaDinilai(): bool
+    {
+        return $this->status === 'Diverifikasi';
+    }
+
+    /**
+     * Hasil Akhir (MOORA) terkait pengajuan ini.
+     */
+    public function hasilAkhir()
+    {
+        return $this->hasOne(HasilAkhir::class, 'pengajuan_id', 'id');
     }
 }

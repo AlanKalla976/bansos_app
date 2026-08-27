@@ -18,6 +18,7 @@ class MooraService
         $pengajuanIds = Penilaian::distinct()->pluck('pengajuan_id');
         $pengajuans   = Pengajuan::with('bantuanSosial')
             ->whereIn('id', $pengajuanIds)
+            ->where('status', 'Diverifikasi')
             ->get();
 
         if ($pengajuans->isEmpty() || $kriterias->isEmpty()) {

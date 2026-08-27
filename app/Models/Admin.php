@@ -34,6 +34,6 @@ class Admin extends Authenticatable
 
     public function newQuery()
     {
-        return parent::newQuery()->where('role', 'admin');
+        return parent::newQuery()->whereIn('role', ['admin', 'petugas', 'lurah']);
     }
 }

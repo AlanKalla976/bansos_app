@@ -10,7 +10,7 @@ class AuthAdmin
 {
     public function handle(Request $request, Closure $next)
     {
-        if (!Auth::guard('admin')->check()) {
+        if (!Auth::guard('admin')->check() && !Auth::guard('petugas')->check() && !Auth::guard('lurah')->check()) {
             return redirect()->route('admin.login')
                 ->with('error', 'Silakan login terlebih dahulu.');
         }

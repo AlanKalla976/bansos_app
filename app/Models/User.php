@@ -33,6 +33,11 @@ class User extends Authenticatable
         'password'          => 'hashed',
     ];
 
+    public function getFullNameAttribute()
+    {
+        return $this->name;
+    }
+
     public function pengajuans()
     {
         return $this->hasMany(Pengajuan::class, 'user_id', 'users_id');

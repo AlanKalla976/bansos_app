@@ -54,28 +54,48 @@
             </li>
         </ul>
 
+        @php
+            if (request()->is('admin/petugas') || request()->is('admin/petugas/*')) {
+                $currentUser = Auth::guard('petugas')->user();
+            } elseif (request()->is('admin/lurah') || request()->is('admin/lurah/*')) {
+                $currentUser = Auth::guard('lurah')->user();
+            } else {
+                $currentUser = Auth::guard('admin')->user();
+            }
+        @endphp
+
         <div class="dropdown">
             <div class="topbar-profile" data-bs-toggle="dropdown" aria-expanded="false">
                 <div class="topbar-avatar">
-                    {{ strtoupper(substr(Auth::guard('admin')->user()->full_name ?? 'A', 0, 1)) }}
+                    {{ strtoupper(substr($currentUser->name ?? 'A', 0, 1)) }}
                 </div>
                 <span class="topbar-username d-none d-sm-block">
-                    {{ Auth::guard('admin')->user()->full_name ?? 'Admin' }}
+                    {{ $currentUser->name ?? 'Staff' }}
                 </span>
                 <i class="bi bi-chevron-down d-none d-sm-block" style="font-size:.65rem; color:var(--text-muted);"></i>
             </div>
             <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3 p-2 mt-1" style="min-width:200px;">
                 <li class="px-2 py-1 mb-1">
                     <div style="font-weight:700; font-size:.82rem; color:var(--primary);">
-                        {{ Auth::guard('admin')->user()->full_name ?? 'Admin' }}
+                        {{ $currentUser->name ?? 'Staff' }}
                     </div>
                     <div style="font-size:.72rem; color:var(--text-muted);">
-                        {{ Auth::guard('admin')->user()->email ?? '' }}
+                        {{ $currentUser->email ?? '' }}
                     </div>
                 </li>
                 <li><hr class="dropdown-divider my-1"></li>
+                @php
+                    $dashboardRoute = route('admin.dashboard');
+                    if ($currentUser) {
+                        if ($currentUser->role === 'petugas') {
+                            $dashboardRoute = route('admin.petugas.dashboard');
+                        } elseif ($currentUser->role === 'lurah') {
+                            $dashboardRoute = route('admin.lurah.dashboard');
+                        }
+                    }
+                @endphp
                 <li>
-                    <a href="{{ route('admin.dashboard') }}" class="dropdown-item rounded-2 py-2" style="font-size:.82rem;">
+                    <a href="{{ $dashboardRoute }}" class="dropdown-item rounded-2 py-2" style="font-size:.82rem;">
                         <i class="bi bi-speedometer2 me-2" style="color:var(--accent);"></i>Dashboard
                     </a>
                 </li>

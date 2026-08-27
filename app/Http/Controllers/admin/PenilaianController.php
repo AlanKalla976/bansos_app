@@ -33,6 +33,12 @@ class PenilaianController extends Controller
     public function create(Request $request)
     {
         $pengajuan = Pengajuan::with('bantuanSosial')->findOrFail($request->pengajuan_id);
+        
+        if ($pengajuan->status !== 'Diverifikasi') {
+            return redirect()->route('admin.penilaian.index')
+                ->with('error', 'Penilaian hanya dapat diinput untuk pengajuan yang telah divalidasi (status Diverifikasi).');
+        }
+
         $kriterias = Kriteria::with('subKriterias')->orderBy('kriteria_id')->get();
 
         return view('admin.penilaian.create', compact('pengajuan', 'kriterias'));
@@ -48,6 +54,12 @@ class PenilaianController extends Controller
             'penilaian.*.subkriteria_id' => 'required|exists:sub_kriterias,subkriteria_id',
             'penilaian.*.nilai'          => 'required|numeric',
         ]);
+
+        $pengajuan = Pengajuan::findOrFail($request->pengajuan_id);
+        if ($pengajuan->status !== 'Diverifikasi') {
+            return redirect()->route('admin.penilaian.index')
+                ->with('error', 'Penilaian hanya dapat diinput untuk pengajuan yang telah divalidasi (status Diverifikasi).');
+        }
 
         // Cek apakah sebelumnya sudah ada penilaian untuk pengajuan ini (untuk pesan yang sesuai)
         $isUpdate = Penilaian::where('pengajuan_id', $request->pengajuan_id)->exists();

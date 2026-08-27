@@ -20,5 +20,27 @@ class AdminSeeder extends Seeder
                 'role'     => 'admin',
             ]
         );
+
+        User::updateOrCreate(
+            ['email' => 'petugas@bansos.com'],
+            [
+                'nik'      => '3273010101900002',
+                'name'     => 'Petugas Bansos',
+                'email'    => 'petugas@bansos.com',
+                'password' => Hash::make('petugas123'),
+                'role'     => 'petugas',
+            ]
+        );
+
+        User::updateOrCreate(
+            ['email' => 'lurah@bansos.com'],
+            [
+                'nik'      => '3273010101900003',
+                'name'     => 'Lurah Harjamukti',
+                'email'    => 'lurah@bansos.com',
+                'password' => Hash::make('lurah123'),
+                'role'     => 'lurah',
+            ]
+        );
     }
 }

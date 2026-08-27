@@ -359,8 +359,8 @@
                     <div class="header-icon">
                         <img src="{{ asset('images/logo-pemkot.png') }}" alt="Logo Pemerintah Kota">
                     </div>
-                    <h2>Login Admin</h2>
-                    <p>Masuk ke panel administrator SPK Bantuan Sosial</p>
+                    <h2>Login Internal</h2>
+                    <p>Masuk sebagai Admin, Petugas, atau Lurah</p>
                 </div>
 
                 {{-- Alerts --}}
@@ -392,7 +392,7 @@
                                    name="email"
                                    class="form-control @error('email') is-invalid @enderror"
                                    value="{{ old('email') }}"
-                                   placeholder="admin@email.com"
+                                   placeholder="staff@email.com"
                                    autocomplete="email"
                                    required>
                             @error('email')
@@ -432,7 +432,7 @@
                     </div>
 
                     <button type="submit" class="btn-login">
-                        <i class="bi bi-box-arrow-in-right me-2"></i>Masuk Sebagai Admin
+                        <i class="bi bi-box-arrow-in-right me-2"></i>Masuk
                     </button>
                 </form>
 
