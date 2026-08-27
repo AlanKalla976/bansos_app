@@ -799,6 +799,251 @@ Dari aspek arsitektural informasi, landing page ini dibagi menjadi beberapa bagi
 
 ---
 
+### 5.3.14 Implementasi Validasi Berkas oleh Petugas
+
+Petugas kelurahan memproses validasi keaslian dokumen persyaratan fisik yang dikirimkan warga sebelum data masuk ke tahap penilaian kriteria. Berikut potongan listing kodenya:
+
+##### Listing 5.14 Validasi Dokumen Pengajuan oleh Petugas
+##### Nama File: `app/Http/Controllers/Petugas/ValidasiController.php`
+```php
+    public function validasi(Request $request, Pengajuan $pengajuan)
+    {
+        // Pastikan pengajuan masih berstatus Menunggu (belum pernah divalidasi)
+        if ($pengajuan->status !== 'Menunggu') {
+            return redirect()
+                ->route('admin.petugas.validasi.show', $pengajuan)
+                ->with('error', 'Pengajuan ini sudah pernah divalidasi sebelumnya.');
+        }
+
+        $request->validate([
+            'keputusan'        => 'required|in:Diverifikasi,Ditolak',
+            'alasan_penolakan' => 'required_if:keputusan,Ditolak|nullable|string|max:500',
+        ], [
+            'keputusan.required'             => 'Keputusan validasi wajib dipilih.',
+            'keputusan.in'                   => 'Keputusan tidak valid.',
+            'alasan_penolakan.required_if'   => 'Alasan penolakan wajib diisi jika berkas dinyatakan Tidak Valid.',
+        ]);
+
+        $pengajuan->update([
+            'status'           => $request->keputusan,
+            'alasan_penolakan' => $request->keputusan === 'Ditolak' ? $request->alasan_penolakan : null,
+            'validated_by'     => Auth::guard('admin')->user()->users_id,
+            'validated_at'     => now(),
+        ]);
+
+        $pesan = $request->keputusan === 'Diverifikasi'
+            ? "Pengajuan atas nama {$pengajuan->nama} dinyatakan Valid dan siap dinilai."
+            : "Pengajuan atas nama {$pengajuan->nama} dinyatakan Tidak Valid.";
+
+        return redirect()
+            ->route('admin.petugas.validasi.index')
+            ->with('success', $pesan);
+    }
+```
+
+Method `validasi()` pada `ValidasiController` mengontrol alur pengesahan berkas dokumen yang diajukan oleh pemohon bantuan sosial dari sisi petugas kelurahan. Untuk menjaga integritas status data, fungsi ini menerapkan pengaman awal (*guard block*) berupa pemeriksaan status berkas yang harus berada dalam kondisi `'Menunggu'`. Jika berkas tersebut telah divalidasi sebelumnya, sistem secara otomatis akan memblokir proses dan mengalihkan halaman disertai peringatan error. Aturan validasi memastikan keputusan berupa `'Diverifikasi'` atau `'Ditolak'`, serta mewajibkan pengisian kolom alasan penolakan jika berkas dinyatakan tidak valid (ditolak).
+
+Setelah tervalidasi secara form, kolom status pengajuan diperbarui sesuai keputusan petugas. Kunci asing `validated_by` merekam pengidentifikasi unik petugas yang melakukan validasi, sedangkan penanggalan `validated_at` mencatat waktu realisasi eksekusi. Konfirmasi keputusan ini penting agar data alternatif warga yang berstatus `'Diverifikasi'` dapat masuk ke tahap penilaian numerik kriteria dan kalkulasi MOORA, sedangkan pengajuan yang ditolak dihentikan prosesnya.
+
+---
+
+### 5.3.15 Implementasi Penjadwalan & Konfirmasi Penyaluran oleh Petugas
+
+Realisasi penyaluran fisik diverifikasi dan dijadwalkan oleh petugas untuk dikonfirmasikan saat bantuan telah serah terima. Berikut potongan listing kodenya:
+
+##### Listing 5.15 Konfirmasi Realisasi Penerimaan Bantuan oleh Petugas
+##### Nama File: `app/Http/Controllers/Petugas/PenyaluranController.php`
+```php
+    public function konfirmasi(Request $request, Penyaluran $penyaluran)
+    {
+        $penyaluran->load(['hasilAkhir.pengajuan']);
+
+        // Guard: Hanya yang berstatus Sudah Dijadwalkan yang bisa dikonfirmasi
+        if ($penyaluran->status !== 'Sudah Dijadwalkan') {
+            return redirect()
+                ->route('admin.petugas.penyaluran.index')
+                ->with('error', 'Hanya penyaluran dengan status Sudah Dijadwalkan yang dapat dikonfirmasi.');
+        }
+
+        $namaPenerimaDisetujui = $penyaluran->hasilAkhir->pengajuan->nama ?? '';
+
+        $request->validate([
+            'tanggal_realisasi' => 'required|date|before_or_equal:today',
+            'waktu_realisasi'   => 'required',
+            'penerima_aktual'   => [
+                'required',
+                'string',
+                'max:100',
+                // Validasi agar penerima aktual harus sesuai/mengandung nama penerima yang disetujui (case-insensitive)
+                function ($attribute, $value, $fail) use ($namaPenerimaDisetujui) {
+                    if (stripos($value, $namaPenerimaDisetujui) === false) {
+                        $fail('Nama penerima aktual harus sesuai dengan nama penerima yang disetujui (' . $namaPenerimaDisetujui . ').');
+                    }
+                }
+            ],
+            'keterangan'        => 'nullable|string|max:1000',
+            'foto_dokumentasi'  => 'nullable|image|max:2048',
+        ]);
+
+        $data = [
+            'tanggal_realisasi' => $request->tanggal_realisasi,
+            'waktu_realisasi'   => $request->waktu_realisasi,
+            'penerima_aktual'   => $request->penerima_aktual,
+            'keterangan'        => $request->keterangan,
+            'status'            => 'Sudah Diambil',
+            'confirmed_by'      => Auth::guard('admin')->user()->users_id,
+            'confirmed_at'      => now(),
+        ];
+
+        if ($request->hasFile('foto_dokumentasi')) {
+            $data['foto_dokumentasi'] = $request->file('foto_dokumentasi')->store('realisasi', 'public');
+        }
+
+        $penyaluran->update($data);
+
+        return redirect()
+            ->route('admin.petugas.penyaluran.index', ['status' => 'Sudah Diambil'])
+            ->with('success', 'Konfirmasi pengambilan bantuan berhasil disimpan.');
+    }
+```
+
+Method `konfirmasi()` pada `PenyaluranController` mengelola pencatatan realisasi fisik penyerahan bantuan sosial kepada warga penerima manfaat. Sesi pengesahan diawali dengan verifikasi status penyaluran yang harus berstatus `'Sudah Dijadwalkan'`. Validasi form mewajibkan pengisian tanggal penyerahan aktual yang tidak boleh melebihi tanggal hari ini (`before_or_equal:today`), waktu penyerahan, serta nama penerima fisik bantuan. Selain itu, dipasang fungsi validasi kustom (*closure validation*) untuk membandingkan nama pengambil bantuan dengan nama warga penerima sah hasil ketetapan MOORA secara *case-insensitive* untuk meminimalisir salah sasaran distribusi.
+
+Jika berkas input dinyatakan sesuai, sistem memperbarui status penyaluran menjadi `'Sudah Diambil'`. Pengidentifikasi unik petugas yang menyerahkan bantuan dicatat pada kolom `confirmed_by`, dan foto dokumentasi bukti fisik penyerahan bantuan diunggah ke storage publik (`realisasi/`). Proses otentikasi konfirmasi ini berfungsi sebagai pilar monitoring penyerahan bansos secara transparan dan akuntabel.
+
+---
+
+### 5.3.16 Implementasi Monitoring Penyaluran oleh Petugas
+
+Pencatatan evaluasi kebermanfaatan bantuan sosial oleh petugas kelurahan terhadap penerima yang terverifikasi. Berikut potongan listing kodenya:
+
+##### Listing 5.16 Input Evaluasi Monitoring Penyaluran oleh Petugas
+##### Nama File: `app/Http/Controllers/Petugas/MonitoringController.php`
+```php
+    public function store(Request $request, Penyaluran $penyaluran)
+    {
+        $penyaluran->load(['hasilAkhir.pengajuan']);
+
+        // Guard: Hanya untuk penyaluran yang Sudah Diambil
+        if ($penyaluran->status !== 'Sudah Diambil') {
+            return redirect()
+                ->route('admin.petugas.monitoring.index')
+                ->with('error', 'Monitoring hanya dapat dilakukan untuk penyaluran yang sudah direalisasikan.');
+        }
+
+        $request->validate([
+            'dampak'            => 'required|in:Sangat Membantu,Membantu,Cukup Membantu,Tidak Membantu',
+            'keterangan_dampak' => 'required|string|max:1000',
+        ]);
+
+        // Hitung Otomatis ulang untuk integritas data
+        $rencana = $penyaluran->tanggal_pengambilan;
+        $realisasi = $penyaluran->tanggal_realisasi;
+        $ketepatanWaktu = 'Terlambat';
+        if ($rencana && $realisasi) {
+            $ketepatanWaktu = $realisasi->lte($rencana) ? 'Tepat Waktu' : 'Terlambat';
+        }
+
+        $namaDisetujui = trim($penyaluran->hasilAkhir->pengajuan->nama ?? '');
+        $penerimaAktual = trim($penyaluran->penerima_aktual ?? '');
+        $ketepatanSasaran = (strcasecmp($namaDisetujui, $penerimaAktual) === 0) ? 'Sesuai Sasaran' : 'Tidak Sesuai Sasaran';
+
+        // Simpan data monitoring
+        Monitoring::updateOrCreate(
+            ['penyaluran_id' => $penyaluran->id],
+            [
+                'ketepatan_waktu'   => $ketepatanWaktu,
+                'ketepatan_sasaran' => $ketepatanSasaran,
+                'dampak'            => $request->dampak,
+                'keterangan_dampak' => $request->keterangan_dampak,
+                'petugas_id'        => Auth::guard('admin')->user()->users_id,
+                'tanggal_monitoring'=> now()->toDateString(),
+            ]
+        );
+
+        return redirect()
+            ->route('admin.petugas.monitoring.index', ['status' => 'Sudah'])
+            ->with('success', 'Data monitoring evaluasi berhasil disimpan.');
+    }
+```
+
+Method `store()` pada `MonitoringController` menangani pencatatan data evaluasi pasca-realisasi penyaluran bantuan sosial. Evaluasi monitoring hanya diizinkan untuk data penyaluran yang statusnya telah dikonfirmasi `'Sudah Diambil'`. Evaluasi meliputi penilaian dampak bantuan (skala Sangat Membantu, Membantu, Cukup, atau Tidak) serta uraian keterangan dampak sosial ekonomi bagi penerima manfaat.
+
+Guna menjamin keandalan data (*data integrity*), sistem melakukan kalkulasi otomatis pada indikator objektif penyaluran: `ketepatan_waktu` dievaluasi dengan membandingkan apakah tanggal realisasi penyerahan lebih kecil atau sama dengan tanggal rencana pengambilan (`lte()`), dan `ketepatan_sasaran` diverifikasi dengan membandingkan kecocokan mutlak nama penerima aktual dengan nama calon penerima disetujui lurah. Data evaluasi ini direkam ke tabel `monitorings` menggunakan metode `updateOrCreate()` untuk mengakomodasi koreksi data oleh petugas di kemudian hari.
+
+---
+
+### 5.3.17 Implementasi Persetujuan Calon Penerima oleh Lurah
+
+Keputusan mutlak persetujuan atau penolakan calon penerima rekomendasi MOORA yang dikelola secara eksklusif oleh Lurah. Berikut potongan listing kodenya:
+
+##### Listing 5.17 Skenario Persetujuan dan Penolakan Rekomendasi Kelayakan oleh Lurah
+##### Nama File: `app/Http/Controllers/Lurah/PersetujuanController.php`
+```php
+    public function setujui(Request $request, HasilAkhir $hasilAkhir)
+    {
+        if ($hasilAkhir->sudahDiproses()) {
+            return redirect()
+                ->route('admin.lurah.persetujuan.show', $hasilAkhir->hasil_id)
+                ->with('error', 'Calon penerima ini sudah pernah diproses sebelumnya.');
+        }
+
+        $lurahId = Auth::guard('admin')->user()->users_id;
+
+        $hasilAkhir->update([
+            'persetujuan_status' => 'Disetujui',
+            'alasan_penolakan_lurah' => null,
+            'persetujuan_oleh'   => $lurahId,
+            'persetujuan_at'     => now(),
+        ]);
+
+        // Otomatis buat record di penyalurans dengan status Belum Dijadwalkan
+        \App\Models\Penyaluran::create([
+            'hasil_id' => $hasilAkhir->hasil_id,
+            'status'   => 'Belum Dijadwalkan',
+        ]);
+
+        return redirect()
+            ->route('admin.lurah.persetujuan.index')
+            ->with('success', "Calon penerima atas nama {$hasilAkhir->pengajuan->nama} telah disetujui.");
+    }
+
+    public function tolak(Request $request, HasilAkhir $hasilAkhir)
+    {
+        if ($hasilAkhir->sudahDiproses()) {
+            return redirect()
+                ->route('admin.lurah.persetujuan.show', $hasilAkhir->hasil_id)
+                ->with('error', 'Calon penerima ini sudah pernah diproses sebelumnya.');
+        }
+
+        $request->validate([
+            'alasan_penolakan_lurah' => 'required|string|min:10|max:1000',
+        ], [
+            'alasan_penolakan_lurah.required' => 'Alasan penolakan wajib diisi.',
+            'alasan_penolakan_lurah.min'      => 'Alasan penolakan minimal 10 karakter.',
+        ]);
+
+        $lurahId = Auth::guard('admin')->user()->users_id;
+
+        $hasilAkhir->update([
+            'persetujuan_status'     => 'Ditolak',
+            'alasan_penolakan_lurah' => $request->alasan_penolakan_lurah,
+            'persetujuan_oleh'       => $lurahId,
+            'persetujuan_at'         => now(),
+        ]);
+
+        return redirect()
+            ->route('admin.lurah.persetujuan.index')
+            ->with('success', "Calon penerima atas nama {$hasilAkhir->pengajuan->nama} telah ditolak.");
+    }
+```
+
+Method `setujui()` dan `tolak()` pada `PersetujuanController` mewakili kewenangan mutlak Lurah sebagai pengambil keputusan akhir (*decision maker*) untuk menetapkan penerima bantuan sosial berdasarkan pemeringkatan MOORA. Sebelum memproses keputusan, sistem menguji apakah entri hasil akhir telah dideklarasikan diproses sebelumnya (`sudahDiproses()`) guna menghindari benturan persetujuan ganda.
+
+Jika Lurah menyetujui rekomendasi MOORA, status kelayakan diubah menjadi `'Disetujui'`. Peristiwa ini secara otomatis memicu pembentukan record baru pada tabel `penyalurans` dengan status `'Belum Dijadwalkan'`, yang nantinya akan dikelola oleh Petugas untuk dimasukkan ke jadwal distribusi bantuan fisik. Sebaliknya, jika rekomendasi ditolak, Lurah diwajibkan menuliskan alasan penolakan rasional (minimal 10 karakter) untuk memperbarui atribut `alasan_penolakan_lurah` dan status diubah menjadi `'Ditolak'`. Keputusan ini terekam bersama stempel waktu `persetujuan_at` dan identitas lurah `persetujuan_oleh` untuk menjamin akuntabilitas kepemimpinan.
+
+---
+
 ## 5.4 Pengujian Sistem
 
 Bagian ini membahas mengenai pengujian fungsionalitas (*functional testing*) pada Sistem Informasi Manajemen Bantuan Sosial (Bansos-App). Pengujian dilakukan untuk memastikan seluruh unit fungsional sistem berjalan dengan baik dan menghasilkan keluaran yang sesuai dengan rancangan. Format pengujian mengacu pada format standar tabel pengujian sistem yang disajikan secara terstruktur menggunakan parameter kasus uji, kondisi awal, dependensi, langkah-langkah pengujian, data masukan, serta hasil akhir pengujian.
