@@ -84,7 +84,7 @@ class ValidasiController extends Controller
         $pengajuan->update([
             'status'           => $request->keputusan,
             'alasan_penolakan' => $request->keputusan === 'Ditolak' ? $request->alasan_penolakan : null,
-            'validated_by'     => Auth::guard('admin')->user()->users_id,
+            'validated_by'     => (Auth::guard('petugas')->user() ?? Auth::guard('admin')->user())->users_id,
             'validated_at'     => now(),
         ]);
 

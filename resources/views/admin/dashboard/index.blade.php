@@ -343,6 +343,9 @@
                     <a href="{{ route('admin.lurah.persetujuan.index') }}" class="btn btn-primary btn-lg py-3">
                         <i class="bi bi-person-check-fill me-2 fs-5"></i> Masuk Menu Persetujuan Penerima
                     </a>
+                    <a href="{{ route('admin.lurah.monitoring.index') }}" class="btn btn-outline-primary btn-lg py-3">
+                        <i class="bi bi-graph-up me-2 fs-5"></i> Masuk Menu Laporan Monitoring
+                    </a>
                 </div>
             </div>
         </div>

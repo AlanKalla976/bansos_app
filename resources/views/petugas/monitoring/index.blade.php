@@ -67,7 +67,7 @@
 {{-- ── Statistik ringkasan ── --}}
 <div class="row g-3 mb-4">
     <div class="col-sm-4">
-        <a href="{{ route('admin.petugas.monitoring.index', ['status'=>'Semua']) }}" class="text-decoration-none">
+        <a href="{{ route($routePrefix . '.monitoring.index', ['status'=>'Semua']) }}" class="text-decoration-none">
             <div class="stat-card {{ $statusFilter==='Semua' ? 'border-primary' : '' }}" style="{{ $statusFilter==='Semua' ? 'border-color:#1E3A5F!important;' : '' }}">
                 <div class="stat-icon" style="background:#DBEAFE;">
                     <i class="bi bi-collection-fill" style="color:#1E3A5F;"></i>
@@ -80,7 +80,7 @@
         </a>
     </div>
     <div class="col-sm-4">
-        <a href="{{ route('admin.petugas.monitoring.index', ['status'=>'Belum']) }}" class="text-decoration-none">
+        <a href="{{ route($routePrefix . '.monitoring.index', ['status'=>'Belum']) }}" class="text-decoration-none">
             <div class="stat-card {{ $statusFilter==='Belum' ? 'border-warning' : '' }}" style="{{ $statusFilter==='Belum' ? 'border-color:#F59E0B!important;' : '' }}">
                 <div class="stat-icon" style="background:#FEF3C7;">
                     <i class="bi bi-exclamation-triangle" style="color:#D97706;"></i>
@@ -93,7 +93,7 @@
         </a>
     </div>
     <div class="col-sm-4">
-        <a href="{{ route('admin.petugas.monitoring.index', ['status'=>'Sudah']) }}" class="text-decoration-none">
+        <a href="{{ route($routePrefix . '.monitoring.index', ['status'=>'Sudah']) }}" class="text-decoration-none">
             <div class="stat-card {{ $statusFilter==='Sudah' ? 'border-success' : '' }}" style="{{ $statusFilter==='Sudah' ? 'border-color:#059669!important;' : '' }}">
                 <div class="stat-icon" style="background:#D1FAE5;">
                     <i class="bi bi-shield-fill-check" style="color:#059669;"></i>
@@ -110,7 +110,7 @@
 {{-- ── Filter ── --}}
 <div class="page-card mb-4">
     <div class="card-body-inner">
-        <form method="GET" action="{{ route('admin.petugas.monitoring.index') }}" class="row g-2 align-items-end">
+        <form method="GET" action="{{ route($routePrefix . '.monitoring.index') }}" class="row g-2 align-items-end">
             <div class="col-md-3">
                 <label class="form-label small fw-semibold">Cari Nama / NIK</label>
                 <input type="text" name="search" value="{{ request('search') }}" class="form-control" placeholder="Cari...">
@@ -138,7 +138,7 @@
                 <button type="submit" class="btn btn-primary flex-fill">
                     <i class="bi bi-funnel-fill me-1"></i> Filter
                 </button>
-                <a href="{{ route('admin.petugas.monitoring.index') }}" class="btn btn-outline-secondary">
+                <a href="{{ route($routePrefix . '.monitoring.index') }}" class="btn btn-outline-secondary">
                     <i class="bi bi-x-circle"></i>
                 </a>
             </div>
@@ -245,15 +245,13 @@
                         
                         <td style="text-align:center;">
                             @if(!$m)
-                                <a href="{{ route('admin.petugas.monitoring.create', $p->id) }}"
-                                   class="btn btn-sm btn-warning rounded-pill px-3">
-                                    <i class="bi bi-file-earmark-diff-fill me-1"></i> Evaluasi Dampak
-                                </a>
+                                <span class="badge bg-light text-dark border px-3 py-2 rounded-pill">
+                                    <i class="bi bi-hourglass-split me-1"></i> Belum Ada Evaluasi
+                                </span>
                             @else
-                                <a href="{{ route('admin.petugas.monitoring.create', $p->id) }}"
-                                   class="btn btn-sm btn-outline-secondary rounded-pill px-3"
-                                   title="Ubah Evaluasi Dampak">
-                                    <i class="bi bi-pencil-fill me-1"></i> Edit Evaluasi
+                                <a href="{{ route($routePrefix . '.monitoring.create', $p->id) }}"
+                                   class="btn btn-sm btn-primary rounded-pill px-3">
+                                    <i class="bi bi-eye-fill me-1"></i> Lihat Detail
                                 </a>
                             @endif
                         </td>

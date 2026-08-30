@@ -14,6 +14,7 @@ class Monitoring extends Model
         'ketepatan_sasaran',
         'dampak',
         'keterangan_dampak',
+        'foto_penggunaan',
         'petugas_id',
         'tanggal_monitoring',
     ];

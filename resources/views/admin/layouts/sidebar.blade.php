@@ -158,8 +158,8 @@
                 </span>
             @endif
         </a>
-        <a href="#"
-           class="nav-link">
+        <a href="{{ route('admin.lurah.monitoring.index') }}"
+           class="nav-link {{ request()->routeIs('admin.lurah.monitoring*') ? 'active' : '' }}">
             <i class="bi bi-graph-up nav-icon"></i>
             Laporan Monitoring
         </a>

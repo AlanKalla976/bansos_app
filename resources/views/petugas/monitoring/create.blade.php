@@ -1,16 +1,16 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Evaluasi Dampak Penyaluran')
-@section('page-title', 'Evaluasi Dampak Penyaluran')
-@section('breadcrumb', 'Evaluasi')
+@section('title', 'Detail Evaluasi Dampak')
+@section('page-title', 'Detail Evaluasi Dampak')
+@section('breadcrumb', 'Detail Evaluasi')
 
 @section('content')
 <div class="container-fluid">
     <div class="d-flex align-items-center mb-4">
-        <a href="{{ route('admin.petugas.monitoring.index') }}" class="btn btn-outline-secondary me-3">
+        <a href="{{ route($routePrefix . '.monitoring.index') }}" class="btn btn-outline-secondary me-3">
             <i class="bi bi-arrow-left"></i> Kembali
         </a>
-        <h4 class="fw-bold mb-0"><i class="bi bi-shield-check-fill me-2"></i>Formulir Evaluasi Dampak Bantuan</h4>
+        <h4 class="fw-bold mb-0"><i class="bi bi-shield-check-fill me-2"></i>Detail Evaluasi Dampak Bantuan</h4>
     </div>
 
     @if($errors->any())
@@ -78,60 +78,62 @@
                 </div>
             </div>
 
-            {{-- Input Aspek 3: DAMPAK --}}
+            {{-- Detail Aspek 3: DAMPAK --}}
             <div class="card shadow-sm border-0 rounded-3">
-                <div class="card-header fw-bold text-white border-0 bg-warning text-dark">
-                    <i class="bi bi-chat-left-heart-fill me-2"></i> Aspek 3: Evaluasi Dampak Sosial Ekonomi
+                <div class="card-header fw-bold text-white border-0 bg-info">
+                    <i class="bi bi-chat-left-heart-fill me-2"></i> Aspek 3: Umpan Balik Evaluasi Dampak
                 </div>
                 <div class="card-body bg-white rounded-bottom">
-                    <form action="{{ route('admin.petugas.monitoring.store', $penyaluran->id) }}" method="POST">
-                        @csrf
-
-                        {{-- Pilihan Dampak --}}
+                    @if($penyaluran->monitoring)
+                        {{-- Nilai Dampak --}}
                         <div class="mb-4">
-                            <label class="form-label fw-bold">Dampak Bantuan Bagi Penerima <span class="text-danger">*</span></label>
-                            <div class="d-flex flex-wrap gap-3">
-                                @foreach(['Sangat Membantu', 'Membantu', 'Cukup Membantu', 'Tidak Membantu'] as $opt)
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="dampak" id="dampak_{{ Str::slug($opt) }}" 
-                                               value="{{ $opt }}" {{ old('dampak', $penyaluran->monitoring->dampak ?? '') === $opt ? 'checked' : '' }} required>
-                                        <label class="form-check-label fw-semibold" for="dampak_{{ Str::slug($opt) }}">
-                                            {{ $opt }}
-                                        </label>
-                                    </div>
-                                @endforeach
-                            </div>
-                            @error('dampak')
-                                <div class="text-danger small mt-1">{{ $message }}</div>
-                            @enderror
+                            <label class="form-label fw-bold d-block">Tingkat Dampak Bantuan</label>
+                            @php
+                                $dampak = $penyaluran->monitoring->dampak;
+                                $badgeClass = 'bg-secondary';
+                                if ($dampak === 'Sangat Membantu' || $dampak === 'Membantu') {
+                                    $badgeClass = 'bg-success';
+                                } elseif ($dampak === 'Cukup Membantu') {
+                                    $badgeClass = 'bg-warning text-dark';
+                                } elseif ($dampak === 'Tidak Membantu') {
+                                    $badgeClass = 'bg-danger';
+                                }
+                            @endphp
+                            <span class="badge {{ $badgeClass }} fs-6 px-3 py-2 rounded-pill">
+                                <i class="bi bi-emoji-smile-fill me-1"></i> {{ $dampak }}
+                            </span>
                         </div>
 
                         {{-- Keterangan Dampak --}}
                         <div class="mb-4">
-                            <label for="keterangan_dampak" class="form-label fw-bold">Keterangan Dampak Penerimaan Bantuan <span class="text-danger">*</span></label>
-                            <textarea name="keterangan_dampak" id="keterangan_dampak" 
-                                      class="form-control @error('keterangan_dampak') is-invalid @enderror" 
-                                      rows="5" placeholder="Tuliskan keterangan evaluasi dampak secara rinci. Contoh: Dampak bantuan membantu memenuhi kebutuhan pangan keluarga penerima." required>{{ old('keterangan_dampak', $penyaluran->monitoring->keterangan_dampak ?? '') }}</textarea>
-                            <div class="form-text text-muted">Jelaskan secara kualitatif bagaimana bantuan sosial tersebut memengaruhi kehidupan ekonomi/sosial penerima.</div>
-                            @error('keterangan_dampak')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                            <label class="form-label fw-bold">Ulasan / Keterangan Dampak</label>
+                            <div class="p-3 bg-light rounded border border-light" style="font-size: 0.95rem; font-style: italic; color: #334155; line-height: 1.6;">
+                                "{{ $penyaluran->monitoring->keterangan_dampak }}"
+                            </div>
                         </div>
 
-                        {{-- Log Monitoring Sebelumnya (jika edit) --}}
-                        @if($penyaluran->monitoring)
-                            <div class="alert alert-light border small text-muted py-2 mb-4">
-                                <i class="bi bi-clock-history me-1"></i> Terakhir dievaluasi oleh <strong>{{ $penyaluran->monitoring->petugas->name ?? '-' }}</strong> pada {{ $penyaluran->monitoring->tanggal_monitoring?->format('d M Y') }}.
+                        {{-- Foto Penggunaan Utama --}}
+                        @if($penyaluran->monitoring->foto_penggunaan)
+                            <div class="mb-4">
+                                <label class="form-label fw-bold d-block">Foto Bukti Penggunaan Bantuan</label>
+                                <div class="bg-light p-2 rounded text-center border">
+                                    <a href="{{ asset('storage/' . $penyaluran->monitoring->foto_penggunaan) }}" target="_blank">
+                                        <img src="{{ asset('storage/' . $penyaluran->monitoring->foto_penggunaan) }}" class="img-fluid rounded" style="max-height: 400px; box-shadow: 0 4px 10px rgba(0,0,0,0.08);">
+                                    </a>
+                                    <div class="form-text mt-2 text-muted">* Klik gambar untuk memperbesar</div>
+                                </div>
                             </div>
                         @endif
 
-                        <div class="d-flex justify-content-end gap-2">
-                            <button type="button" class="btn btn-light" onclick="history.back()">Batal</button>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-save me-1"></i> Simpan Evaluasi Dampak
-                            </button>
+                        {{-- Metadata Pengiriman --}}
+                        <div class="alert alert-light border small text-muted py-2 mb-0">
+                            <i class="bi bi-info-circle me-1"></i> Dikirim secara mandiri oleh penerima bantuan pada {{ $penyaluran->monitoring->tanggal_monitoring?->format('d M Y') ?? $penyaluran->monitoring->created_at->format('d M Y') }}.
                         </div>
-                    </form>
+                    @else
+                        <div class="alert alert-warning mb-0">
+                            <i class="bi bi-exclamation-triangle me-2"></i> Penerima bantuan belum mengirimkan umpan balik evaluasi dampak untuk penyaluran ini.
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -164,6 +166,16 @@
                             <th>Realisasi Waktu</th>
                             <td>: {{ $penyaluran->waktu_realisasi ?? '-' }} WIB</td>
                         </tr>
+                        @if($penyaluran->monitoring && $penyaluran->monitoring->foto_penggunaan)
+                        <tr>
+                            <td colspan="2" class="pt-3 border-top">
+                                <span class="d-block small text-muted fw-bold mb-1"><i class="bi bi-image me-1"></i>Foto Bukti Penggunaan Bantuan:</span>
+                                <a href="{{ asset('storage/' . $penyaluran->monitoring->foto_penggunaan) }}" target="_blank">
+                                    <img src="{{ asset('storage/' . $penyaluran->monitoring->foto_penggunaan) }}" class="img-thumbnail w-100" style="max-height: 250px; object-fit: cover; border-radius: 8px;">
+                                </a>
+                            </td>
+                        </tr>
+                        @endif
                     </table>
                 </div>
             </div>

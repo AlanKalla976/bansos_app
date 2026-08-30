@@ -16,6 +16,9 @@ class MonitoringController extends Controller
      */
     public function index(Request $request)
     {
+        $isLurah = $request->is('admin/lurah') || $request->is('admin/lurah/*');
+        $routePrefix = $isLurah ? 'admin.lurah' : 'admin.petugas';
+
         $query = Penyaluran::with(['hasilAkhir.pengajuan.bantuanSosial', 'monitoring.petugas'])
             ->where('status', 'Sudah Diambil')
             ->latest();
@@ -57,21 +60,25 @@ class MonitoringController extends Controller
             'statusFilter',
             'statsTotal',
             'statsBelum',
-            'statsSudah'
+            'statsSudah',
+            'routePrefix'
         ));
     }
 
     /**
      * Halaman form pengisian monitoring evaluasi
      */
-    public function create(Penyaluran $penyaluran)
+    public function create(Request $request, Penyaluran $penyaluran)
     {
+        $isLurah = $request->is('admin/lurah') || $request->is('admin/lurah/*');
+        $routePrefix = $isLurah ? 'admin.lurah' : 'admin.petugas';
+
         $penyaluran->load(['hasilAkhir.pengajuan.bantuanSosial', 'monitoring']);
 
         // Guard: Hanya untuk penyaluran yang Sudah Diambil
         if ($penyaluran->status !== 'Sudah Diambil') {
             return redirect()
-                ->route('admin.petugas.monitoring.index')
+                ->route($routePrefix . '.monitoring.index')
                 ->with('error', 'Monitoring hanya dapat dilakukan untuk penyaluran yang sudah direalisasikan.');
         }
 
@@ -88,58 +95,6 @@ class MonitoringController extends Controller
         $penerimaAktual = trim($penyaluran->penerima_aktual ?? '');
         $ketepatanSasaran = (strcasecmp($namaDisetujui, $penerimaAktual) === 0) ? 'Sesuai Sasaran' : 'Tidak Sesuai Sasaran';
 
-        return view('petugas.monitoring.create', compact('penyaluran', 'ketepatanWaktu', 'ketepatanSasaran'));
-    }
-
-    /**
-     * Simpan evaluasi monitoring
-     */
-    public function store(Request $request, Penyaluran $penyaluran)
-    {
-        $penyaluran->load(['hasilAkhir.pengajuan']);
-
-        // Guard: Hanya untuk penyaluran yang Sudah Diambil
-        if ($penyaluran->status !== 'Sudah Diambil') {
-            return redirect()
-                ->route('admin.petugas.monitoring.index')
-                ->with('error', 'Monitoring hanya dapat dilakukan untuk penyaluran yang sudah direalisasikan.');
-        }
-
-        $request->validate([
-            'dampak'            => 'required|in:Sangat Membantu,Membantu,Cukup Membantu,Tidak Membantu',
-            'keterangan_dampak' => 'required|string|max:1000',
-        ], [
-            'dampak.required'            => 'Evaluasi dampak bantuan wajib dipilih.',
-            'keterangan_dampak.required' => 'Keterangan dampak wajib diisi.',
-        ]);
-
-        // Hitung Otomatis ulang untuk integritas data
-        $rencana = $penyaluran->tanggal_pengambilan;
-        $realisasi = $penyaluran->tanggal_realisasi;
-        $ketepatanWaktu = 'Terlambat';
-        if ($rencana && $realisasi) {
-            $ketepatanWaktu = $realisasi->lte($rencana) ? 'Tepat Waktu' : 'Terlambat';
-        }
-
-        $namaDisetujui = trim($penyaluran->hasilAkhir->pengajuan->nama ?? '');
-        $penerimaAktual = trim($penyaluran->penerima_aktual ?? '');
-        $ketepatanSasaran = (strcasecmp($namaDisetujui, $penerimaAktual) === 0) ? 'Sesuai Sasaran' : 'Tidak Sesuai Sasaran';
-
-        // Simpan data monitoring (atau update jika sudah pernah diisi sebelumnya untuk mekanisme koreksi)
-        Monitoring::updateOrCreate(
-            ['penyaluran_id' => $penyaluran->id],
-            [
-                'ketepatan_waktu'   => $ketepatanWaktu,
-                'ketepatan_sasaran' => $ketepatanSasaran,
-                'dampak'            => $request->dampak,
-                'keterangan_dampak' => $request->keterangan_dampak,
-                'petugas_id'        => Auth::guard('admin')->user()->users_id,
-                'tanggal_monitoring'=> now()->toDateString(),
-            ]
-        );
-
-        return redirect()
-            ->route('admin.petugas.monitoring.index', ['status' => 'Sudah'])
-            ->with('success', 'Data monitoring evaluasi berhasil disimpan.');
+        return view('petugas.monitoring.create', compact('penyaluran', 'ketepatanWaktu', 'ketepatanSasaran', 'routePrefix'));
     }
 }

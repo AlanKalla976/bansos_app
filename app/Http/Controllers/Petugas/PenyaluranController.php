@@ -110,7 +110,7 @@ class PenyaluranController extends Controller
             'lokasi_pengambilan'  => $request->lokasi_pengambilan,
             'keterangan'          => $request->keterangan,
             'status'              => $request->status,
-            'petugas_id'          => Auth::guard('admin')->user()->users_id,
+            'petugas_id'          => (Auth::guard('petugas')->user() ?? Auth::guard('admin')->user())->users_id,
         ]);
 
         return redirect()
@@ -180,7 +180,7 @@ class PenyaluranController extends Controller
             'penerima_aktual'   => $request->penerima_aktual,
             'keterangan'        => $request->keterangan,
             'status'            => 'Sudah Diambil',
-            'confirmed_by'      => Auth::guard('admin')->user()->users_id,
+            'confirmed_by'      => (Auth::guard('petugas')->user() ?? Auth::guard('admin')->user())->users_id,
             'confirmed_at'      => now(),
         ];
 

@@ -124,7 +124,7 @@ class PersetujuanController extends Controller
                 ->with('error', 'Calon penerima ini sudah pernah diproses sebelumnya.');
         }
 
-        $lurahId = Auth::guard('admin')->user()->users_id;
+        $lurahId = (Auth::guard('lurah')->user() ?? Auth::guard('admin')->user())->users_id;
 
         $hasilAkhir->update([
             'persetujuan_status' => 'Disetujui',
@@ -162,7 +162,7 @@ class PersetujuanController extends Controller
             'alasan_penolakan_lurah.min'      => 'Alasan penolakan minimal 10 karakter.',
         ]);
 
-        $lurahId = Auth::guard('admin')->user()->users_id;
+        $lurahId = (Auth::guard('lurah')->user() ?? Auth::guard('admin')->user())->users_id;
 
         $hasilAkhir->update([
             'persetujuan_status'     => 'Ditolak',

@@ -48,6 +48,19 @@
 @section('content')
 <div class="container-fluid py-4">
 
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show rounded-3 shadow-sm mb-4" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>{{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show rounded-3 shadow-sm mb-4" role="alert">
+            <i class="bi bi-x-circle-fill me-2"></i>{{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
     <div class="page-header mb-4">
         <div>
             <h2 class="page-header-title text-primary fw-bold">
@@ -203,7 +216,7 @@
                                         </div>
                                     @elseif($penyaluran->status === 'Sudah Diambil')
                                         <div class="col-12">
-                                            <div class="alert alert-success d-flex align-items-center mb-0" role="alert">
+                                            <div class="alert alert-success d-flex align-items-center mb-3" role="alert">
                                                 <i class="bi bi-check-circle-fill me-3 fs-4"></i>
                                                 <div>
                                                     <h6 class="fw-bold mb-1">Bantuan Sosial Telah Diterima</h6>
@@ -211,6 +224,63 @@
                                                         Bantuan jenis **{{ $pengajuan->bantuanSosial->nama_bantuan }}** telah sukses diambil pada: 
                                                         <strong>{{ $penyaluran->updated_at->format('d M Y') }}</strong> pukul <strong>{{ $penyaluran->updated_at->format('H:i') }} WIB</strong>.
                                                     </span>
+                                                </div>
+                                            </div>
+
+                                            <div class="card border-0 rounded-3 shadow-sm" style="background: #F8FAFC; border: 1px solid #E2E8F0 !important;">
+                                                <div class="card-body p-4">
+                                                    <h6 class="fw-bold text-primary mb-3">
+                                                        <i class="bi bi-chat-left-heart-fill me-2"></i>Evaluasi Dampak Bantuan (Umpan Balik Penerima)
+                                                    </h6>
+                                                    @if($penyaluran->monitoring)
+                                                        <div class="bg-white p-3 rounded border border-light shadow-sm">
+                                                            <div class="d-flex align-items-center mb-2">
+                                                                 <span class="badge bg-success me-2" style="font-size: 0.8rem;">
+                                                                     <i class="bi bi-emoji-smile-fill me-1"></i>{{ $penyaluran->monitoring->dampak }}
+                                                                 </span>
+                                                                 <small class="text-muted">Dikirim pada {{ $penyaluran->monitoring->tanggal_monitoring?->format('d M Y') }}</small>
+                                                            </div>
+                                                            <p class="mb-2 text-dark" style="font-size: 0.9rem; font-style: italic;">
+                                                                "{{ $penyaluran->monitoring->keterangan_dampak }}"
+                                                            </p>
+                                                            @if($penyaluran->monitoring->foto_penggunaan)
+                                                                <div class="mt-3">
+                                                                    <span class="d-block small text-muted fw-bold mb-1"><i class="bi bi-image me-1"></i>Foto Bukti Penggunaan Bantuan:</span>
+                                                                    <a href="{{ asset('storage/' . $penyaluran->monitoring->foto_penggunaan) }}" target="_blank">
+                                                                        <img src="{{ asset('storage/' . $penyaluran->monitoring->foto_penggunaan) }}" class="img-thumbnail" style="max-height: 150px; border-radius: 8px;">
+                                                                    </a>
+                                                                </div>
+                                                            @endif
+                                                        </div>
+                                                    @else
+                                                        <form action="{{ route('user.statusbantuan.evaluasi', $penyaluran->id) }}" method="POST" enctype="multipart/form-data">
+                                                            @csrf
+                                                            <div class="mb-3">
+                                                                <label for="dampak_{{ $penyaluran->id }}" class="form-label small fw-bold">Bagaimana dampak bantuan ini bagi kehidupan Anda? <span class="text-danger">*</span></label>
+                                                                <select name="dampak" id="dampak_{{ $penyaluran->id }}" class="form-select" required>
+                                                                    <option value="">-- Pilih Penilaian --</option>
+                                                                    <option value="Sangat Membantu">Sangat Membantu</option>
+                                                                    <option value="Membantu">Membantu</option>
+                                                                    <option value="Cukup Membantu">Cukup Membantu</option>
+                                                                    <option value="Tidak Membantu">Tidak Membantu</option>
+                                                                </select>
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label for="keterangan_dampak_{{ $penyaluran->id }}" class="form-label small fw-bold">Keterangan / Ulasan Tambahan: <span class="text-danger">*</span></label>
+                                                                <textarea name="keterangan_dampak" id="keterangan_dampak_{{ $penyaluran->id }}" class="form-control" rows="3" placeholder="Tuliskan pengalaman atau masukan Anda setelah menerima bantuan ini..." required></textarea>
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label for="foto_penggunaan_{{ $penyaluran->id }}" class="form-label small fw-bold">Foto Bukti Penggunaan Bantuan: <span class="text-danger">*</span></label>
+                                                                <input type="file" name="foto_penggunaan" id="foto_penggunaan_{{ $penyaluran->id }}" class="form-control" accept="image/*" required>
+                                                                <div class="form-text text-muted" style="font-size: 0.75rem;">
+                                                                    * Unggah foto bukti penggunaan bantuan sosial (Contoh: foto sembako yang dibeli, struk belanja, kwitansi sekolah, dll.). Maksimal 2MB.
+                                                                </div>
+                                                            </div>
+                                                            <button type="submit" class="btn btn-primary btn-sm px-4 rounded-pill">
+                                                                <i class="bi bi-send-fill me-1"></i> Kirim Umpan Balik
+                                                            </button>
+                                                        </form>
+                                                    @endif
                                                 </div>
                                             </div>
                                         </div>

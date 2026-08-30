@@ -68,6 +68,7 @@ Route::prefix('user')->name('user.')->group(function () {
         |----------------------------------------------------------------------
         */
         Route::get('/statusbantuan', [StatusBantuanController::class, 'index'])->name('statusbantuan.index');
+        Route::post('/statusbantuan/{penyaluran}/evaluasi', [StatusBantuanController::class, 'storeEvaluasi'])->name('statusbantuan.evaluasi');
 
         /*
         |----------------------------------------------------------------------
@@ -164,7 +165,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
             // Monitoring Penyaluran
             Route::get('/monitoring',                               [MonitoringController::class, 'index'])->name('monitoring.index');
             Route::get('/monitoring/{penyaluran}/buat',             [MonitoringController::class, 'create'])->name('monitoring.create');
-            Route::post('/monitoring/{penyaluran}/buat',            [MonitoringController::class, 'store'])->name('monitoring.store');
         });
 
         /*
@@ -185,6 +185,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('/persetujuan/{hasilAkhir}/tolak',      [PersetujuanController::class, 'tolak'])->name('persetujuan.tolak');
             // Melihat ranking hasil MOORA (read-only)
             Route::get('/hasilakhir',                           [HasilAkhirController::class, 'index'])->name('hasilakhir.index');
+            // Monitoring Penyaluran Lurah (Hanya Melihat)
+            Route::get('/monitoring',                           [MonitoringController::class, 'index'])->name('monitoring.index');
+            Route::get('/monitoring/{penyaluran}/buat',         [MonitoringController::class, 'create'])->name('monitoring.create');
         });
 
     });
